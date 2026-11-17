@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FileText, Upload, Filter, X, Search, Calendar, DollarSign, User, Building2, Tag, type LucideIcon, Sparkles, Trash2 } from 'lucide-react';
-import type { Proposal, ProposalStatus, MatchWithRelations } from '@/lib/supabase';
+import type { Proposal, ProposalStatus, MatchWithRelations } from '@/lib/types';
 import { useProposals, useMatches, updateProposalStatus, deleteProposal } from '@/lib/hooks';
 import { Modal, Toast } from '@/components/ui';
 import { formatDate, formatCurrency, statusLabel, PROPOSAL_STATUSES, RESEARCH_AREAS } from '@/lib/utils';

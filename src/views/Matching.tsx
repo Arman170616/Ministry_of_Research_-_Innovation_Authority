@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { GitCompare, Sparkles, Filter, X, FileText, BookOpen, ArrowRight, Check, XCircle, Eye } from 'lucide-react';
-import type { MatchStatus } from '@/lib/supabase';
+import type { MatchStatus } from '@/lib/types';
 import { useMatches, useProposals, usePublications, updateMatch, generateMatches } from '@/lib/hooks';
 import { ScoreRing, Toast } from '@/components/ui';
 import { formatDate, statusLabel, MATCH_STATUSES } from '@/lib/utils';

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { LiquidBackground } from '@/components/ui';
 import { Sidebar, type View } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -9,7 +8,8 @@ import { Publications } from '@/views/Publications';
 import { Matching } from '@/views/Matching';
 import { Login } from '@/views/Login';
 import { useProposals, usePublications, useMatches } from '@/lib/hooks';
-import { supabase } from '@/lib/supabase';
+import { auth, UNAUTHORIZED_EVENT } from '@/lib/api';
+import type { AuthUser } from '@/lib/types';
 
 const VIEW_META: Record<View, { title: string; subtitle: string }> = {
   dashboard: { title: 'Research Dashboard', subtitle: 'Overview of proposals, publications, and matching activity' },
@@ -18,47 +18,49 @@ const VIEW_META: Record<View, { title: string; subtitle: string }> = {
   matching: { title: 'Proposal Matching', subtitle: 'Filter proposals by publication matching score' },
 };
 
+function FullScreenMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative min-h-screen flex items-center justify-center">
+      <LiquidBackground />
+      <div className="relative z-10 text-ink-300 text-sm">{children}</div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    auth.me()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setAuthReady(true));
+
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, []);
+
+  const handleSignOut = async () => {
+    await auth.logout();
+    setUser(null);
+  };
+
+  if (!authReady) return <FullScreenMessage>Loading...</FullScreenMessage>;
+  if (!user) return <Login onAuthed={setUser} />;
+
+  // Keyed by user so nothing from a previous session's data survives a sign-in as someone else.
+  return <Workspace key={user.id} user={user} onSignOut={handleSignOut} />;
+}
+
+function Workspace({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
   const [view, setView] = useState<View>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [authReady, setAuthReady] = useState(false);
 
   const { proposals, loading: proposalsLoading } = useProposals();
   const { publications, loading: publicationsLoading } = usePublications();
   const { matches, loading: matchesLoading } = useMatches();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setAuthReady(true);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setView('dashboard');
-  };
-
-  if (!authReady) {
-    return (
-      <div className="relative min-h-screen flex items-center justify-center">
-        <LiquidBackground />
-        <div className="relative z-10 text-ink-300 text-sm">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Login onAuthed={() => {}} />;
-  }
 
   const loading = proposalsLoading || publicationsLoading || matchesLoading;
   const meta = VIEW_META[view];
@@ -73,8 +75,8 @@ export default function App() {
           onNavigate={setView}
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
-          userEmail={user.email ?? ''}
-          onSignOut={handleSignOut}
+          userEmail={user.email || user.username}
+          onSignOut={onSignOut}
         />
 
         <div className="flex-1 min-w-0">

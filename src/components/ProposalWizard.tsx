@@ -5,7 +5,7 @@ import {
   User, Mail, Building2, Calendar, DollarSign, Tag, ClipboardList,
   Star, Users, Award, AlertCircle, ChevronRight,
 } from 'lucide-react';
-import type { Proposal, MatchWithRelations, MatchStatus } from '@/lib/supabase';
+import type { Proposal, MatchWithRelations, MatchStatus } from '@/lib/types';
 import { createProposal, generateMatchesForProposal, saveEvaluation } from '@/lib/hooks';
 import { formatDate, formatCurrency, OMAN_VISION_PILLARS, FUNDING_TIERS, RESEARCH_AREAS } from '@/lib/utils';
 import { ScoreRing } from '@/components/ui';

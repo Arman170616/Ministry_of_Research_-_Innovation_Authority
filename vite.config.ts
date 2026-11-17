@@ -13,4 +13,10 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  server: {
+    // Forward API calls to the Django backend during development.
+    proxy: {
+      '/api': 'http://127.0.0.1:8000',
+    },
+  },
 });

@@ -1,4 +1,4 @@
-import type { ProposalStatus, MatchStatus } from '@/lib/supabase';
+import type { ProposalStatus, MatchStatus } from '@/lib/types';
 
 export function formatDate(date: string | null): string {
   if (!date) return '—';

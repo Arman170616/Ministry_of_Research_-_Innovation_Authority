@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BookOpen, Upload, Filter, X, Search, Calendar, Quote, Tag, ChevronRight, ExternalLink, Users, type LucideIcon } from 'lucide-react';
-import type { Publication } from '@/lib/supabase';
+import type { Publication } from '@/lib/types';
 import { usePublications, createPublication } from '@/lib/hooks';
 import { Modal, Toast } from '@/components/ui';
 import { formatDate, RESEARCH_AREAS } from '@/lib/utils';

@@ -3,7 +3,8 @@ import {
   User, Lock, Mail, Loader2, AlertCircle, Eye, EyeOff, ArrowRight,
   FileInput, GitCompareArrows, ClipboardCheck,
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/api';
+import type { AuthUser } from '@/lib/types';
 
 const LOGO_SRC = '/images/ria-logo.png';
 
@@ -29,7 +30,7 @@ function LatticePattern() {
   );
 }
 
-export function Login({ onAuthed }: { onAuthed: () => void }) {
+export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -52,21 +53,13 @@ export function Login({ onAuthed }: { onAuthed: () => void }) {
     setError(null);
 
     try {
-      if (mode === 'signin') {
-        const signInEmail = username.includes('@') ? username : `${username}@ria.gov.om`;
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
-        if (signInError) throw signInError;
-        if (data.session) onAuthed();
-      } else {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
-        if (signUpError) throw signUpError;
-        const { data, error: autoSignInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (autoSignInError) throw autoSignInError;
-        if (data.session) onAuthed();
-      }
+      // A plain username also matches an account registered as <username>@ria.gov.om (handled by the API).
+      const user = mode === 'signin'
+        ? await auth.login(username, password)
+        : await auth.register(email, password);
+      onAuthed(user);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Authentication failed';
-      setError(msg === 'Invalid login credentials' ? 'Incorrect username or password.' : msg);
+      setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
     }

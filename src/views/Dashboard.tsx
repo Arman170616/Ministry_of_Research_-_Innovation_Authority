@@ -1,5 +1,5 @@
 import { FileText, BookOpen, GitCompare, TrendingUp, DollarSign, CheckCircle2, Clock, AlertCircle, Flame, Target, Wallet, Lightbulb, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
-import type { Proposal, Publication, MatchWithRelations } from '@/lib/supabase';
+import type { Proposal, Publication, MatchWithRelations } from '@/lib/types';
 import { ScoreRing } from '@/components/ui';
 import { formatDate, formatCurrency, statusLabel, OMAN_VISION_PILLARS, FUNDING_TIERS } from '@/lib/utils';
 

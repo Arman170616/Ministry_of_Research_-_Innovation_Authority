@@ -14,7 +14,7 @@ A single workspace for reviewing national research funding proposals, from submi
 
 The login page has a branded panel (logo, platform overview, workflow steps) on the left and the sign-in form on the right. On phones and narrow screens the branded panel is hidden and the logo appears above the form.
 
-- **Sign in** with a username or email and a password. A plain username is signed in as `username@ria.gov.om`.
+- **Sign in** with a username or email and a password. A plain username also matches an account registered as `username@ria.gov.om`.
 - **Sign up** with an email and a password. The new user is signed in straight away.
 - The password field has a show/hide toggle, and errors are shown above the form.
 
@@ -22,61 +22,107 @@ The page is in [`src/views/Login.tsx`](src/views/Login.tsx) and the logo is in [
 
 ## Tech stack
 
-- [React 18](https://react.dev/) + TypeScript
-- [Vite](https://vitejs.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Supabase](https://supabase.com/) for authentication and the Postgres database
-- [lucide-react](https://lucide.dev/) for icons
+| Part | Built with |
+|---|---|
+| Frontend | [React 18](https://react.dev/) + TypeScript, [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [lucide-react](https://lucide.dev/) icons |
+| Backend | [Django 5.2](https://www.djangoproject.com/) + [Django REST Framework](https://www.django-rest-framework.org/), token authentication |
+| Database | SQLite (default, for development) |
 
 ## Getting started
 
-You need Node.js 18 or later and a Supabase project.
+You need **Node.js 18+** and **Python 3.11+**. Run the backend and the frontend in two terminals.
+
+### 1. Backend (Django API on port 8000)
 
 ```bash
-# 1. Install dependencies
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser   # an admin account (staff see every proposal)
+python manage.py runserver
+```
+
+### 2. Frontend (Vite on port 5173)
+
+```bash
 npm install
-
-# 2. Add your Supabase credentials
-cp .env.example .env
-# then edit .env and set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-
-# 3. Start the dev server
 npm run dev
 ```
 
-Then open http://localhost:5173.
+Open http://localhost:5173. In development Vite forwards every `/api` request to Django, so no extra configuration is needed.
 
-### Database
+The Django admin is at http://127.0.0.1:8000/admin/ for managing users and data.
 
-The schema is in [`supabase/migrations/`](supabase/migrations/). It creates the `proposals`, `publications`, `matches` and `evaluations` tables with row-level security for signed-in users. Apply the migrations to your Supabase project with the [Supabase CLI](https://supabase.com/docs/guides/cli) (`supabase db push`) or by running them in the SQL editor.
+## Access rules
+
+- Every API endpoint except login and sign-up requires a signed-in user.
+- **Proposals** are private to the person who submitted them. **Staff** users (`is_staff`) see all proposals.
+- **Matches** follow their proposal: you see matches for the proposals you can see. Only the review fields (`status`, `reviewed_by`, `notes`) can be edited.
+- **Publications** are a shared library for all signed-in users.
+- **Evaluations**: each reviewer has one evaluation per proposal. Saving again updates it.
+
+## API
+
+All endpoints are under `/api/`. Send the token from login or sign-up as `Authorization: Token <token>`.
+
+| Method | Endpoint | What it does |
+|---|---|---|
+| POST | `/auth/register/` | Create an account `{email, password}` and return `{token, user}` |
+| POST | `/auth/login/` | Sign in `{username, password}` (username or email) and return `{token, user}` |
+| POST | `/auth/logout/` | Revoke the token |
+| GET | `/auth/me/` | The signed-in user |
+| GET, POST | `/proposals/` | List or create proposals |
+| GET, PATCH, DELETE | `/proposals/<id>/` | Read, update or delete a proposal (deleting also removes its matches and evaluations) |
+| GET, POST | `/publications/` | List or create publications |
+| GET, PATCH, DELETE | `/publications/<id>/` | Read, update or delete a publication |
+| GET | `/matches/?proposal_id=<id>` | List matches with nested proposal and publication, best score first |
+| PATCH | `/matches/<id>/` | Review a match (`status`, `reviewed_by`, `notes`) |
+| POST | `/matches/generate/` | Run matching for all proposals and return `{count}`, or for one with `{proposal_id}` and return its matches |
+| GET, POST | `/evaluations/` | List your evaluations, or save one (created or updated per proposal) |
+
+**Matching:** a proposal and a publication match when they share keywords. The score is 20 points per shared keyword, up to 100. Running matching again refreshes scores but keeps review status and notes.
 
 ## Scripts
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Build for production into `dist/` |
-| `npm run preview` | Preview the production build |
+| `npm run dev` | Start the frontend dev server |
+| `npm run build` | Build the frontend into `dist/` |
 | `npm run typecheck` | Run the TypeScript checks |
 | `npm run lint` | Run ESLint |
+| `python manage.py test research` | Run the backend tests (from `backend/`) |
 
 ## Project structure
 
 ```
+backend/
+  config/       Django settings and root URLs
+  research/     Models, API views, serializers, matching engine, tests
 src/
   views/        Pages: Login, Dashboard, Proposals, Publications, Matching
   components/   Header, Sidebar, ProposalWizard, shared UI
-  lib/          Supabase client, hooks, helpers
+  lib/          API client (api.ts), data hooks, types, helpers
 public/images/  Logos and images
-supabase/       Database migrations
 docs/           Screenshots
 ```
 
 ## Environment variables
 
+**Frontend** (`.env`, see [`.env.example`](.env.example)):
+
 | Variable | Description |
 |---|---|
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon (public) key |
+| `VITE_API_URL` | Optional. The API's address when it is hosted on another domain. Leave empty in development. |
 
-`.env` is git-ignored. Never commit real credentials.
+**Backend** (`backend/.env`, see [`backend/.env.example`](backend/.env.example)):
+
+| Variable | Description |
+|---|---|
+| `DJANGO_DEBUG` | `true` for development, `false` in production |
+| `DJANGO_SECRET_KEY` | Required when `DJANGO_DEBUG` is `false` |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated host names the API answers on |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated frontend addresses allowed to call the API |
+
+`.env`, `backend/.env` and the SQLite database are git-ignored. Never commit real credentials.

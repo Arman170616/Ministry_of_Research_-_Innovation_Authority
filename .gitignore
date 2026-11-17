@@ -24,3 +24,11 @@ dist-ssr
 
 # Local reference screenshots (not used by the app)
 Screenshot_*.png
+
+# Django backend
+backend/.venv/
+backend/.env
+backend/db.sqlite3
+backend/staticfiles/
+__pycache__/
+*.pyc
