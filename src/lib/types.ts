@@ -41,6 +41,10 @@ export interface Match {
   publication_id: string;
   match_score: number;
   matched_keywords: string[];
+  /** 'ai' = Claude judged relevance by meaning; 'keyword' = exact keyword overlap. */
+  method: 'ai' | 'keyword';
+  /** Claude's one-sentence reason for the match (empty for keyword matches). */
+  rationale: string;
   status: MatchStatus;
   reviewed_by: string | null;
   notes: string | null;
@@ -73,4 +77,45 @@ export interface AuthUser {
   username: string;
   email: string;
   is_staff: boolean;
+}
+
+/** Fields Claude read from an uploaded proposal document (POST /api/ai/extract/). */
+export interface ExtractedDocument {
+  is_research_proposal: boolean;
+  title: string;
+  author: string;
+  author_email: string;
+  institution: string;
+  research_area: string;
+  abstract: string;
+  funding_requested: number;
+  publication_date: string;
+  keywords: string[];
+  missing_fields: string[];
+  document_text: string;
+}
+
+export interface CriterionSuggestion {
+  score: number;
+  reason: string;
+}
+
+/** Claude's suggested evaluation (POST /api/ai/evaluate/). Reviewers adjust and submit the final scores. */
+export interface EvaluationSuggestion {
+  a: CriterionSuggestion[];
+  b: CriterionSuggestion[];
+  c: CriterionSuggestion[];
+  scientific_capacity: number;
+  leadership: number;
+  team_size: number;
+  recommendation: 'recommend' | 'do_not_fund' | null;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  model: string;
+}
+
+export interface MatchRun {
+  method: 'ai' | 'keyword';
+  warning: string | null;
 }

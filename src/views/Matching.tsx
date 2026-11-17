@@ -29,10 +29,17 @@ export function Matching() {
 
   const handleGenerate = async () => {
     setGenerating(true);
-    const count = await generateMatches();
-    await refresh();
-    setGenerating(false);
-    setToast({ message: `Generated ${count} matches based on keyword overlap`, type: 'success' });
+    try {
+      const run = await generateMatches();
+      await refresh();
+      setToast(run.warning
+        ? { message: run.warning, type: 'error' }
+        : { message: `Found ${run.count} matches ${run.method === 'ai' ? 'with AI analysis' : 'by keyword overlap'}`, type: 'success' });
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : 'Matching failed', type: 'error' });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleStatusChange = async (id: string, status: string) => {
@@ -51,7 +58,7 @@ export function Matching() {
           <Sparkles size={18} className="text-brand" />
           <div>
             <p className="text-sm font-medium text-ink-50">Auto-Matching Engine</p>
-            <p className="text-[11px] text-ink-300">Matches proposals to publications by keyword overlap</p>
+            <p className="text-[11px] text-ink-300">AI compares proposals with publications by meaning (keyword overlap if AI is off)</p>
           </div>
         </div>
         <div className="flex-1" />
@@ -149,6 +156,13 @@ export function Matching() {
                   </button>
                 </div>
               </div>
+
+              {m.rationale && (
+                <p className="mt-3 flex items-start gap-1.5 text-xs text-ink-300">
+                  <Sparkles size={12} className="text-brand mt-0.5 flex-shrink-0" />
+                  <span><span className="font-medium text-ink-200">AI:</span> {m.rationale}</span>
+                </p>
+              )}
 
               {/* Quick actions */}
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ink-700/20">

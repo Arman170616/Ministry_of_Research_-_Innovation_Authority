@@ -33,7 +33,31 @@ def generate_matches(proposals: Iterable[Proposal], publications: Iterable[Publi
             Match.objects.update_or_create(
                 proposal=proposal,
                 publication=publication,
-                defaults={'match_score': match_score, 'matched_keywords': shared},
+                defaults={'match_score': match_score, 'matched_keywords': shared, 'method': 'keyword', 'rationale': ''},
             )
             count += 1
     return count
+
+
+@transaction.atomic
+def save_ai_matches(proposal: Proposal, results: list[dict]) -> int:
+    """Store Claude's matches for one proposal.
+
+    Matches people have already reviewed are kept as they are apart from the refreshed score and reason.
+    Pending matches that Claude no longer considers relevant are removed.
+    """
+    kept_ids = []
+    for r in results:
+        match, _ = Match.objects.update_or_create(
+            proposal=proposal,
+            publication=r['publication'],
+            defaults={
+                'match_score': r['score'],
+                'matched_keywords': r['topics'],
+                'rationale': r['reason'],
+                'method': 'ai',
+            },
+        )
+        kept_ids.append(match.id)
+    Match.objects.filter(proposal=proposal, status=Match.Status.PENDING).exclude(id__in=kept_ids).delete()
+    return len(kept_ids)

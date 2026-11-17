@@ -44,9 +44,13 @@ function errorMessage(body: unknown, fallback: string): string {
   return messages.length ? messages.join(' ') : fallback;
 }
 
-export async function apiRequest<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+type RequestOptions = { method?: string; body?: unknown };
+
+/** Like apiRequest, but also returns the response headers. FormData bodies are sent as multipart uploads. */
+export async function apiRequestWithHeaders<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; headers: Headers }> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  const isForm = options.body instanceof FormData;
+  if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (memoryToken) headers.Authorization = `Token ${memoryToken}`;
 
   let res: Response;
@@ -54,13 +58,13 @@ export async function apiRequest<T>(path: string, options: { method?: string; bo
     res = await fetch(`${API_URL}/api${path}`, {
       method: options.method ?? 'GET',
       headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
     });
   } catch {
     throw new ApiError('Cannot reach the server. Check that the backend is running.', 0);
   }
 
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) return { data: undefined as T, headers: res.headers };
 
   const body = await res.json().catch(() => null);
   if (!res.ok) {
@@ -70,7 +74,11 @@ export async function apiRequest<T>(path: string, options: { method?: string; bo
     }
     throw new ApiError(errorMessage(body, `Request failed (${res.status})`), res.status);
   }
-  return body as T;
+  return { data: body as T, headers: res.headers };
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await apiRequestWithHeaders<T>(path, options)).data;
 }
 
 interface AuthResponse { token: string; user: AuthUser }

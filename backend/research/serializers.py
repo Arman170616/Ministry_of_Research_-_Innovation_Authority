@@ -45,13 +45,15 @@ class RegisterSerializer(serializers.Serializer):
 class ProposalSerializer(serializers.ModelSerializer):
     keywords = KeywordListField(required=False)
     user_id = serializers.PrimaryKeyRelatedField(source='user', read_only=True)
+    # Accepted on create/update but not sent back in lists, to keep responses small.
+    document_text = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = Proposal
         fields = [
             'id', 'title', 'author', 'author_email', 'institution', 'research_area', 'abstract',
             'document_url', 'status', 'funding_requested', 'publication_date', 'keywords',
-            'user_id', 'created_at',
+            'document_text', 'user_id', 'created_at',
         ]
         read_only_fields = ['id', 'user_id', 'created_at']
 
@@ -77,11 +79,12 @@ class MatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = [
-            'id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'status',
-            'reviewed_by', 'notes', 'created_at', 'proposal', 'publication',
+            'id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'method', 'rationale',
+            'status', 'reviewed_by', 'notes', 'created_at', 'proposal', 'publication',
         ]
         # Only the review fields can be changed through the API.
-        read_only_fields = ['id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'created_at']
+        read_only_fields = ['id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'method',
+                            'rationale', 'created_at']
 
 
 class EvaluationSerializer(serializers.ModelSerializer):

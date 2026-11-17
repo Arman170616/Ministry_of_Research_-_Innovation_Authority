@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiRequest } from '@/lib/api';
-import type { Proposal, Publication, MatchWithRelations, Match, Evaluation } from '@/lib/types';
+import { apiRequest, apiRequestWithHeaders } from '@/lib/api';
+import type {
+  Proposal, Publication, MatchWithRelations, Match, Evaluation, ExtractedDocument, EvaluationSuggestion, MatchRun,
+} from '@/lib/types';
 
 /**
  * Several components load the same lists independently. After any change we
@@ -58,7 +60,9 @@ export function useMatches() {
   return { matches: items, ...rest };
 }
 
-export async function createProposal(input: Omit<Proposal, 'id' | 'created_at' | 'user_id'>): Promise<Proposal | null> {
+export async function createProposal(
+  input: Omit<Proposal, 'id' | 'created_at' | 'user_id'> & { document_text?: string },
+): Promise<Proposal | null> {
   try {
     const proposal = await apiRequest<Proposal>('/proposals/', { method: 'POST', body: input });
     notifyChanged('proposals');
@@ -118,27 +122,42 @@ export async function saveEvaluation(input: Omit<Evaluation, 'id' | 'user_id' | 
   }
 }
 
-/** Runs keyword matching on the server for every proposal. Returns how many matches were created or updated. */
-export async function generateMatches(): Promise<number> {
-  try {
-    const { count } = await apiRequest<{ count: number }>('/matches/generate/', { method: 'POST', body: {} });
-    notifyChanged('matches');
-    return count;
-  } catch {
-    return 0;
-  }
+/**
+ * Runs matching on the server for every proposal (Claude when AI is enabled, keyword overlap otherwise).
+ * Throws ApiError with a readable message on failure.
+ */
+export async function generateMatches(): Promise<{ count: number } & MatchRun> {
+  const result = await apiRequest<{ count: number } & MatchRun>('/matches/generate/', { method: 'POST', body: {} });
+  notifyChanged('matches');
+  return result;
 }
 
-/** Runs keyword matching for one proposal and returns its matches, best first. */
-export async function generateMatchesForProposal(proposalId: string): Promise<MatchWithRelations[]> {
+/** Runs matching for one proposal and returns its matches, best first. */
+export async function generateMatchesForProposal(proposalId: string): Promise<{ matches: MatchWithRelations[] } & MatchRun> {
   try {
-    const matches = await apiRequest<MatchWithRelations[]>('/matches/generate/', {
+    const { data, headers } = await apiRequestWithHeaders<MatchWithRelations[]>('/matches/generate/', {
       method: 'POST',
       body: { proposal_id: proposalId },
     });
     notifyChanged('matches');
-    return matches;
-  } catch {
-    return [];
+    return {
+      matches: data,
+      method: headers.get('X-Match-Method') === 'ai' ? 'ai' : 'keyword',
+      warning: headers.get('X-Match-Warning'),
+    };
+  } catch (err) {
+    return { matches: [], method: 'keyword', warning: err instanceof Error ? err.message : 'Matching failed' };
   }
+}
+
+/** Claude reads an uploaded PDF/TXT proposal and returns the form fields. Throws ApiError on failure. */
+export async function extractDocument(file: File): Promise<ExtractedDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiRequest<ExtractedDocument>('/ai/extract/', { method: 'POST', body: form });
+}
+
+/** Claude suggests scores for every evaluation criterion. Throws ApiError on failure. */
+export async function suggestEvaluation(proposalId: string): Promise<EvaluationSuggestion> {
+  return apiRequest<EvaluationSuggestion>('/ai/evaluate/', { method: 'POST', body: { proposal_id: proposalId } });
 }

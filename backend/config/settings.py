@@ -110,7 +110,15 @@ REST_FRAMEWORK = {
     ],
     # Send numbers (funding, scores) as JSON numbers, not strings.
     'COERCE_DECIMAL_TO_STRING': False,
+    # AI endpoints call a paid API, so each user gets a limited number per hour.
+    'DEFAULT_THROTTLE_RATES': {
+        'ai': os.environ.get('AI_RATE_LIMIT', '60/hour'),
+    },
 }
+
+# Uploaded proposal documents are sent to the API in memory; allow files up to 15 MB.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
 
 # The Vite dev server proxies /api to Django, so CORS is only needed when the
 # frontend is hosted on a different origin.

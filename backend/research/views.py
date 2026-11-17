@@ -2,12 +2,14 @@ from django.contrib.auth import authenticate, get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
+from rest_framework.decorators import action, api_view, parser_classes, permission_classes, throttle_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 
-from .matching import generate_matches
+from . import ai
+from .matching import generate_matches, save_ai_matches
 from .models import Evaluation, Match, Publication
 from .permissions import proposals_for
 from .serializers import (
@@ -112,21 +114,47 @@ class MatchViewSet(
             qs = qs.filter(proposal_id=proposal_id)
         return qs.order_by('-match_score', '-created_at')
 
+    def get_throttles(self):
+        if self.action == 'generate':
+            self.throttle_scope = 'ai'
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
+
+    @staticmethod
+    def _match(proposals) -> tuple[int, str, str | None]:
+        """Match proposals with Claude when available, otherwise by keyword overlap.
+
+        Returns (number of matches, method used, warning to show or None).
+        """
+        proposals = list(proposals)
+        if ai.is_enabled():
+            try:
+                publications = list(Publication.objects.all())
+                count = sum(save_ai_matches(p, ai.match_publications(p, publications)) for p in proposals)
+                return count, 'ai', None
+            except ai.AIError as e:
+                return generate_matches(proposals), 'keyword', f'AI matching failed ({e}) - used keyword matching instead.'
+        return generate_matches(proposals), 'keyword', None
+
     @action(detail=False, methods=['post'])
     def generate(self, request):
-        """Run keyword matching.
+        """Run matching.
 
         With {"proposal_id": ...}: match that one proposal and return its matches.
-        Without: match every proposal the user can see and return {"count": n}.
+        Without: match every proposal the user can see and return {"count": n, "method": ..., "warning": ...}.
         """
         proposal_id = request.data.get('proposal_id')
         if proposal_id:
             proposal = get_object_or_404(proposals_for(request.user), pk=proposal_id)
-            generate_matches([proposal])
+            _, method, warning = self._match([proposal])
             matches = self.get_queryset().filter(proposal=proposal)
-            return Response(self.get_serializer(matches, many=True).data)
-        count = generate_matches(proposals_for(request.user))
-        return Response({'count': count})
+            response = Response(self.get_serializer(matches, many=True).data)
+            response['X-Match-Method'] = method
+            if warning:
+                response['X-Match-Warning'] = warning
+            return response
+        count, method, warning = self._match(proposals_for(request.user))
+        return Response({'count': count, 'method': method, 'warning': warning})
 
 
 class EvaluationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -151,3 +179,47 @@ class EvaluationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets
             self.get_serializer(evaluation).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
+
+# ── AI analysis ──────────────────────────────────────────────────────────────
+
+class AIThrottle(ScopedRateThrottle):
+    scope = 'ai'
+
+
+def _ai_error(e: ai.AIError) -> Response:
+    return Response({'detail': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+@api_view(['GET'])
+def ai_status(request):
+    return Response({'enabled': ai.is_enabled(), 'model': ai.model() if ai.is_enabled() else None})
+
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+@throttle_classes([AIThrottle])
+def ai_extract(request):
+    """Read an uploaded proposal document and return the form fields (nothing is saved)."""
+    upload = request.FILES.get('file')
+    if upload is None:
+        return Response({'detail': 'Attach the document as "file".'}, status=status.HTTP_400_BAD_REQUEST)
+    if upload.size > ai.MAX_DOCUMENT_BYTES:
+        return Response({'detail': 'The file is larger than 15 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+    publication_keywords = [k for kws in Publication.objects.values_list('keywords', flat=True) for k in (kws or [])]
+    try:
+        return Response(ai.extract_proposal(upload.read(), upload.name, publication_keywords))
+    except ai.AIError as e:
+        return _ai_error(e)
+
+
+@api_view(['POST'])
+@throttle_classes([AIThrottle])
+def ai_evaluate(request):
+    """Suggest evaluation scores for a proposal (nothing is saved; the reviewer submits the final scores)."""
+    proposal = get_object_or_404(proposals_for(request.user), pk=request.data.get('proposal_id'))
+    matches = Match.objects.filter(proposal=proposal).select_related('publication').order_by('-match_score')[:10]
+    try:
+        return Response(ai.suggest_evaluation(proposal, matches))
+    except ai.AIError as e:
+        return _ai_error(e)

@@ -14,5 +14,8 @@ urlpatterns = [
     path('auth/register/', views.register, name='register'),
     path('auth/logout/', views.logout, name='logout'),
     path('auth/me/', views.me, name='me'),
+    path('ai/status/', views.ai_status, name='ai-status'),
+    path('ai/extract/', views.ai_extract, name='ai-extract'),
+    path('ai/evaluate/', views.ai_evaluate, name='ai-evaluate'),
     path('', include(router.urls)),
 ]

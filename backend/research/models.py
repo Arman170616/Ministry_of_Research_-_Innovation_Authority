@@ -24,6 +24,8 @@ class Proposal(models.Model):
     funding_requested = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, default=0)
     publication_date = models.DateField(null=True, blank=True, db_index=True)
     keywords = models.JSONField(default=list, blank=True)
+    # Full text of the uploaded document, used by the AI evaluation.
+    document_text = models.TextField(blank=True, default='')
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='proposals'
     )
@@ -69,6 +71,9 @@ class Match(models.Model):
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name='matches')
     match_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     matched_keywords = models.JSONField(default=list, blank=True)
+    # How the match was found: 'ai' (Claude, judged by meaning) or 'keyword' (exact keyword overlap).
+    method = models.CharField(max_length=10, default='keyword')
+    rationale = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     reviewed_by = models.TextField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)

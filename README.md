@@ -27,6 +27,7 @@ The page is in [`src/views/Login.tsx`](src/views/Login.tsx) and the logo is in [
 | Frontend | [React 18](https://react.dev/) + TypeScript, [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [lucide-react](https://lucide.dev/) icons |
 | Backend | [Django 5.2](https://www.djangoproject.com/) + [Django REST Framework](https://www.django-rest-framework.org/), token authentication |
 | Database | SQLite (default, for development) |
+| AI analysis | [Claude](https://www.anthropic.com/) (Opus 5.5) through the Anthropic Python SDK |
 
 ## Getting started
 
@@ -55,6 +56,22 @@ Open http://localhost:5173. In development Vite forwards every `/api` request to
 
 The Django admin is at http://127.0.0.1:8000/admin/ for managing users and data.
 
+## AI analysis
+
+When `ANTHROPIC_API_KEY` is set in `backend/.env`, Claude helps reviewers at three points. Everything it produces is a suggestion that a person checks and can change.
+
+| Step | What Claude does | Typical time |
+|---|---|---|
+| **Read the document** | Reads the uploaded PDF or TXT and fills in title, team, institution, research area, budget, date, abstract and keywords. Lists any fields the document doesn't state. | 5–10 s |
+| **Match publications** | Compares the proposal with every publication by meaning, not exact words, and gives each a 0–100 relevance score with a one-sentence reason. | ~10 s |
+| **Suggest scores** | Reads the full proposal and suggests a score and reason for every evaluation criterion (Appendix A, B, C), plus strengths, weaknesses and a funding recommendation. | 25–60 s |
+
+- **Without a key** the app still works: reviewers fill in the form by hand and matching falls back to keyword overlap (20 points per shared keyword).
+- **Status** (approved, rejected, and so on) is always set by a person.
+- **Cost and limits:** each upload makes about 3 requests to the Anthropic API, which is billed per use. Each user can make 60 AI requests per hour (`AI_RATE_LIMIT`).
+- **Privacy:** proposal documents are sent to Anthropic's API for analysis. Confirm this is allowed for your documents before turning AI on.
+- The code is in [`backend/research/ai.py`](backend/research/ai.py).
+
 ## Access rules
 
 - Every API endpoint except login and sign-up requires a signed-in user.
@@ -79,10 +96,13 @@ All endpoints are under `/api/`. Send the token from login or sign-up as `Author
 | GET, PATCH, DELETE | `/publications/<id>/` | Read, update or delete a publication |
 | GET | `/matches/?proposal_id=<id>` | List matches with nested proposal and publication, best score first |
 | PATCH | `/matches/<id>/` | Review a match (`status`, `reviewed_by`, `notes`) |
-| POST | `/matches/generate/` | Run matching for all proposals and return `{count}`, or for one with `{proposal_id}` and return its matches |
+| POST | `/matches/generate/` | Run matching for all proposals and return `{count, method, warning}`, or for one with `{proposal_id}` and return its matches |
 | GET, POST | `/evaluations/` | List your evaluations, or save one (created or updated per proposal) |
+| GET | `/ai/status/` | Whether AI analysis is turned on, and which model |
+| POST | `/ai/extract/` | Upload a proposal (`multipart`, field `file`, PDF or TXT) and get the extracted fields back |
+| POST | `/ai/evaluate/` | Get suggested evaluation scores for `{proposal_id}` |
 
-**Matching:** a proposal and a publication match when they share keywords. The score is 20 points per shared keyword, up to 100. Running matching again refreshes scores but keeps review status and notes.
+**Matching:** with AI on, Claude scores relevance by meaning and gives a reason; matches under 20% are left out. With AI off, a proposal and a publication match when they share keywords (20 points per shared keyword, up to 100). Running matching again refreshes scores but keeps review status and notes.
 
 ## Scripts
 
@@ -124,5 +144,8 @@ docs/           Screenshots
 | `DJANGO_SECRET_KEY` | Required when `DJANGO_DEBUG` is `false` |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated host names the API answers on |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated frontend addresses allowed to call the API |
+| `ANTHROPIC_API_KEY` | Turns on AI analysis. Leave empty to turn it off. |
+| `ANTHROPIC_MODEL` | Claude model to use (default `claude-opus-5-5`) |
+| `AI_RATE_LIMIT` | AI requests allowed per user (default `60/hour`) |
 
-`.env`, `backend/.env` and the SQLite database are git-ignored. Never commit real credentials.
+`.env`, `backend/.env` and the SQLite database are git-ignored. Never commit real credentials, especially the Anthropic API key.

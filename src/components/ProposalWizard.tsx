@@ -1,12 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileText, X, ArrowRight, ArrowLeft, Check, Sparkles, BookOpen,
   Target, BarChart3, TrendingUp, CheckCircle2, XCircle, Loader2, FileCheck2,
   User, Mail, Building2, Calendar, DollarSign, Tag, ClipboardList,
   Star, Users, Award, AlertCircle, ChevronRight,
 } from 'lucide-react';
-import type { Proposal, MatchWithRelations, MatchStatus } from '@/lib/types';
-import { createProposal, generateMatchesForProposal, saveEvaluation } from '@/lib/hooks';
+import type { Proposal, MatchWithRelations, MatchStatus, MatchRun, EvaluationSuggestion, CriterionSuggestion } from '@/lib/types';
+import { createProposal, generateMatchesForProposal, saveEvaluation, extractDocument, suggestEvaluation } from '@/lib/hooks';
 import { formatDate, formatCurrency, OMAN_VISION_PILLARS, FUNDING_TIERS, RESEARCH_AREAS } from '@/lib/utils';
 import { ScoreRing } from '@/components/ui';
 
@@ -44,6 +44,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
   const [extracted, setExtracted] = useState<ExtractedData | null>(null);
   const [savedProposal, setSavedProposal] = useState<Proposal | null>(null);
   const [matchResults, setMatchResults] = useState<MatchWithRelations[]>([]);
+  const [matchRun, setMatchRun] = useState<MatchRun | null>(null);
+  const [documentText, setDocumentText] = useState('');
+  // Result of the AI reading step, shown above the review form.
+  const [extractInfo, setExtractInfo] = useState<{ ok: boolean; message: string; missing: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +59,9 @@ export function ProposalWizard({ open, onClose, onComplete }: {
     setExtracted(null);
     setSavedProposal(null);
     setMatchResults([]);
+    setMatchRun(null);
+    setDocumentText('');
+    setExtractInfo(null);
     setError(null);
   };
 
@@ -73,37 +80,47 @@ export function ProposalWizard({ open, onClose, onComplete }: {
     if (f) handleFile(f);
   }, [handleFile]);
 
-  // Simulated extraction — reads file name and basic properties
+  // Claude reads the uploaded document and fills in the review form.
   const runExtraction = async () => {
+    if (!file) return;
     setStep('extracting');
     setError(null);
 
-    // Simulate processing delay for UX
-    await new Promise((r) => setTimeout(r, 2800));
-
-    // Derive plausible data from filename
-    const baseName = fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
-    const titleGuess = baseName.charAt(0).toUpperCase() + baseName.slice(1);
-
-    const areas = RESEARCH_AREAS;
-    const randomArea = areas[Math.floor(Math.random() * Math.min(6, areas.length))];
-
-    const kwBank = ['renewable energy', 'water security', 'artificial intelligence', 'sustainability', 'climate change', 'public health', 'innovation', 'Oman', 'research', 'development'];
-    const pickedKws = [...kwBank].sort(() => Math.random() - 0.5).slice(0, 4 + Math.floor(Math.random() * 3));
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    setExtracted({
-      title: titleGuess || 'Untitled Proposal',
-      author: 'Dr. [Auto-detected from document]',
-      author_email: '',
-      institution: '',
-      research_area: randomArea,
-      abstract: 'Abstract extracted from the uploaded document. Please review and edit the fields below for accuracy before generating the report.',
-      funding_requested: String(10000 + Math.floor(Math.random() * 90000)),
-      publication_date: today,
-      keywords: pickedKws.join(', '),
-    });
+    const titleFromName = fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+    try {
+      const doc = await extractDocument(file);
+      setDocumentText(doc.document_text);
+      setExtracted({
+        title: doc.title || titleFromName,
+        author: doc.author,
+        author_email: doc.author_email,
+        institution: doc.institution,
+        research_area: doc.research_area,
+        abstract: doc.abstract,
+        funding_requested: doc.funding_requested ? String(doc.funding_requested) : '',
+        publication_date: doc.publication_date,
+        keywords: doc.keywords.join(', '),
+      });
+      setExtractInfo({
+        ok: doc.is_research_proposal,
+        message: doc.is_research_proposal
+          ? 'AI read the document and filled in the fields below. Please check them before continuing.'
+          : 'This file does not look like a research proposal. Please check the fields carefully.',
+        missing: doc.missing_fields,
+      });
+    } catch (err) {
+      // Let the reviewer fill in the form by hand if the AI step fails.
+      setDocumentText('');
+      setExtracted({
+        title: titleFromName, author: '', author_email: '', institution: '', research_area: '',
+        abstract: '', funding_requested: '', publication_date: '', keywords: '',
+      });
+      setExtractInfo({
+        ok: false,
+        message: `${err instanceof Error ? err.message : 'AI reading failed.'} Please fill in the fields yourself.`,
+        missing: [],
+      });
+    }
     setStep('review');
   };
 
@@ -124,14 +141,16 @@ export function ProposalWizard({ open, onClose, onComplete }: {
       status: 'pending',
       funding_requested: extracted.funding_requested ? parseFloat(extracted.funding_requested) : 0,
       publication_date: extracted.publication_date || null,
-      keywords: extracted.keywords ? extracted.keywords.split(',').map((k) => k.trim()).filter(Boolean) : [],
+      keywords: extracted.keywords ? extracted.keywords.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean) : [],
+      document_text: documentText,
     });
 
     if (!proposal) { setError('Failed to save proposal. Check that you are signed in.'); setStep('review'); return; }
 
     setSavedProposal(proposal);
-    const results = await generateMatchesForProposal(proposal.id);
-    setMatchResults(results);
+    const run = await generateMatchesForProposal(proposal.id);
+    setMatchResults(run.matches);
+    setMatchRun({ method: run.method, warning: run.warning });
     setStep('report');
   };
 
@@ -201,7 +220,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.txt"
+                accept=".pdf,.txt"
                 className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               />
@@ -209,7 +228,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 <Upload size={28} className="text-brand" />
               </div>
               <p className="text-sm text-ink-100 font-medium mb-1">Drop your proposal document here</p>
-              <p className="text-xs text-ink-300">or click to browse — PDF, DOCX, or TXT</p>
+              <p className="text-xs text-ink-300">or click to browse — PDF or TXT, up to 15 MB</p>
             </div>
 
             {fileName && (
@@ -250,10 +269,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 <FileText size={32} className="text-brand" />
               </div>
             </div>
-            <h3 className="text-base font-semibold text-ink-50 mb-2">Extracting document data...</h3>
-            <p className="text-sm text-ink-300 mb-4">Analyzing title, author, abstract, and keywords</p>
+            <h3 className="text-base font-semibold text-ink-50 mb-2">AI is reading the document...</h3>
+            <p className="text-sm text-ink-300 mb-4">Usually takes 5–20 seconds</p>
             <div className="max-w-xs mx-auto space-y-2 text-left">
-              {['Reading document structure', 'Identifying title & authors', 'Extracting abstract', 'Detecting research keywords'].map((t, i) => (
+              {['Reading the whole document', 'Finding title, team and institution', 'Finding budget and dates', 'Choosing research keywords'].map((t) => (
                 <div key={t} className="flex items-center gap-2 text-xs text-ink-300">
                   <Loader2 size={12} className="animate-spin text-brand-600" />
                   <span>{t}</span>
@@ -266,10 +285,17 @@ export function ProposalWizard({ open, onClose, onComplete }: {
         {/* Step 3: Review extracted data */}
         {step === 'review' && extracted && (
           <div className="space-y-4">
-            <div className="glass rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-700">
-              <CheckCircle2 size={14} className="text-emerald-600" />
-              <span>Document retrieved successfully. Please review and edit the extracted fields before generating the report.</span>
-            </div>
+            {extractInfo && (
+              <div className={`rounded-xl border p-3 text-xs ${extractInfo.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                <div className="flex items-start gap-2">
+                  {extractInfo.ok ? <Sparkles size={14} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />}
+                  <span>{extractInfo.message}</span>
+                </div>
+                {extractInfo.missing.length > 0 && (
+                  <p className="mt-1.5 pl-6">Not found in the document: {extractInfo.missing.join(', ')}.</p>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <ReviewField icon={FileText} label="Title *">
@@ -326,13 +352,13 @@ export function ProposalWizard({ open, onClose, onComplete }: {
               </div>
             </div>
             <h3 className="text-base font-semibold text-ink-50 mb-2">Matching with publications...</h3>
-            <p className="text-sm text-ink-300">Finding related research papers based on keywords and research area</p>
+            <p className="text-sm text-ink-300">AI is comparing the proposal with every publication by meaning</p>
           </div>
         )}
 
         {/* Step 5: Report */}
         {step === 'report' && savedProposal && (
-          <ReportStep proposal={savedProposal} matches={matchResults} onContinue={() => setStep('evaluation')} onBack={() => setStep('review')} />
+          <ReportStep proposal={savedProposal} matches={matchResults} matchRun={matchRun} onContinue={() => setStep('evaluation')} onBack={() => setStep('review')} />
         )}
 
         {/* Step 6: Evaluation */}
@@ -346,9 +372,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
 
 // ─── Report Step ───────────────────────────────────────────
 
-function ReportStep({ proposal, matches, onContinue, onBack }: {
+function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
   proposal: Proposal;
   matches: MatchWithRelations[];
+  matchRun: MatchRun | null;
   onContinue: () => void;
   onBack: () => void;
 }) {
@@ -469,6 +496,13 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
         </div>
       </div>
 
+      {matchRun?.warning && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 flex items-start gap-2">
+          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+          <span>{matchRun.warning}</span>
+        </div>
+      )}
+
       {/* Matched publications */}
       {matches.length > 0 && (
         <div className="space-y-3">
@@ -483,12 +517,18 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
                   <p className="text-sm text-ink-50 truncate">{m.publication?.title ?? '—'}</p>
                   <p className="text-xs text-ink-300">{m.publication?.authors ?? '—'} · {m.publication?.journal ?? '—'}</p>
                 </div>
-                <div className="hidden md:flex flex-wrap gap-1 max-w-[140px] justify-end">
+                <div className="hidden md:flex flex-wrap gap-1 max-w-[180px] justify-end">
                   {m.matched_keywords.map((k) => (
                     <span key={k} className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>{k}</span>
                   ))}
                 </div>
               </div>
+              {m.rationale && (
+                <p className="mt-3 pl-[68px] text-xs text-ink-300 flex items-start gap-1.5">
+                  <Sparkles size={12} className="text-brand mt-0.5 flex-shrink-0" />
+                  <span>{m.rationale}</span>
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -567,6 +607,43 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI suggestion: requested once when the step opens. Applied automatically unless the reviewer
+  // has already started scoring, in which case they can apply it with a button.
+  const [suggestion, setSuggestion] = useState<EvaluationSuggestion | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const touched = useRef(false);
+
+  const applySuggestion = (sg: EvaluationSuggestion) => {
+    setAScores(sg.a.map((x) => x.score));
+    setBScores(sg.b.map((x) => x.score));
+    setCScores(sg.c.map((x) => x.score));
+    setScientificCapacity(sg.scientific_capacity);
+    setLeadership(sg.leadership);
+    setTeamSize(sg.team_size);
+    if (sg.recommendation) setRecommendation(sg.recommendation);
+    setNotes((n) => n || sg.summary);
+  };
+
+  const requestSuggestion = useCallback(async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const sg = await suggestEvaluation(proposal.id);
+      setSuggestion(sg);
+      if (!touched.current) applySuggestion(sg);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI suggestion failed');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [proposal.id]);
+
+  useEffect(() => { requestSuggestion(); }, [requestSuggestion]);
+
+  // Wrap setters so any manual change stops the suggestion from overwriting the reviewer's work.
+  const byHand = <T,>(set: (v: T) => void) => (v: T) => { touched.current = true; set(v); };
+
   const aTotal = aScores.reduce((s, v) => s + v, 0);
   const bTotal = bScores.reduce((s, v) => s + v, 0);
   const cTotal = cScores.reduce((s, v) => s + v, 0);
@@ -616,6 +693,53 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         <span className="text-xs text-ink-200 truncate">{proposal.title}</span>
       </div>
 
+      {/* AI suggestion */}
+      <div className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-white ring-1 ring-brand-200 flex items-center justify-center flex-shrink-0">
+            {aiLoading ? <Loader2 size={16} className="text-brand animate-spin" /> : <Sparkles size={16} className="text-brand" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-ink-50">AI suggested scores</p>
+            {aiLoading && (
+              <p className="text-xs text-ink-300 mt-0.5">AI is reading the full proposal and scoring each criterion. This takes about 30–90 seconds.</p>
+            )}
+            {aiError && (
+              <div className="mt-1 text-xs text-ink-200">
+                <p className="text-brand-700">{aiError}</p>
+                <button onClick={requestSuggestion} className="mt-2 btn-liquid rounded-lg px-3 py-1 text-xs font-medium">Try again</button>
+              </div>
+            )}
+            {suggestion && !aiLoading && (
+              <div className="mt-1 space-y-2">
+                <p className="text-xs text-ink-200 leading-relaxed">{suggestion.summary}</p>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {suggestion.strengths.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">Strengths</p>
+                      <ul className="space-y-1">{suggestion.strengths.map((t) => <li key={t} className="text-xs text-ink-200 flex gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
+                    </div>
+                  )}
+                  {suggestion.weaknesses.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-700 mb-1">Weaknesses</p>
+                      <ul className="space-y-1">{suggestion.weaknesses.map((t) => <li key={t} className="text-xs text-ink-200 flex gap-1.5"><AlertCircle size={12} className="text-brand mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-xs text-ink-300">
+                    AI recommendation: <span className="font-semibold text-ink-100">{suggestion.recommendation === 'recommend' ? 'Recommend' : suggestion.recommendation === 'do_not_fund' ? 'Do not fund' : '—'}</span>
+                  </span>
+                  <button onClick={() => applySuggestion(suggestion)} className="btn-liquid rounded-lg px-3 py-1 text-xs font-medium">Apply suggested scores</button>
+                </div>
+                <p className="text-[10px] text-ink-400">These are suggestions only. Adjust any score before you submit; the final evaluation is yours.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Scoring scale legend */}
       <div className="glass-card rounded-2xl p-4">
         <p className="text-[10px] text-ink-300 font-semibold uppercase tracking-wider mb-3">Scoring scale (applies to every criterion)</p>
@@ -663,7 +787,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         subtitle="التقييم المبدئي للمقترح البحثي"
         criteria={APPENDIX_A_CRITERIA}
         scores={aScores}
-        onChange={setAScores}
+        onChange={byHand(setAScores)}
+        suggestions={suggestion?.a}
         accentColor="brand"
       />
 
@@ -674,7 +799,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         subtitle="الربط بتحديات المؤسسة والأثر"
         criteria={APPENDIX_B_CRITERIA}
         scores={bScores}
-        onChange={setBScores}
+        onChange={byHand(setBScores)}
+        suggestions={suggestion?.b}
         accentColor="slate"
       />
 
@@ -685,7 +811,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         subtitle="التميز البحثي"
         criteria={APPENDIX_C_CRITERIA}
         scores={cScores}
-        onChange={setCScores}
+        onChange={byHand(setCScores)}
+        suggestions={suggestion?.c}
         accentColor="amber"
       />
 
@@ -719,7 +846,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
             <div className="flex items-center gap-2 mb-2">
               <input
                 type="number" min={1} max={50} value={teamSize}
-                onChange={(e) => setTeamSize(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => byHand(setTeamSize)(Math.max(1, parseInt(e.target.value) || 1))}
                 className="glass-input rounded-lg px-2 py-1 text-lg font-bold text-ink-50 w-20 text-center"
               />
               <span className="text-sm text-ink-300">researchers</span>
@@ -730,8 +857,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
 
         {/* Sliders */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <JudgmentSlider label="Team scientific capacity" value={scientificCapacity} onChange={setScientificCapacity} />
-          <JudgmentSlider label="Principal investigator leadership" value={leadership} onChange={setLeadership} />
+          <JudgmentSlider label="Team scientific capacity" value={scientificCapacity} onChange={byHand(setScientificCapacity)} />
+          <JudgmentSlider label="Principal investigator leadership" value={leadership} onChange={byHand(setLeadership)} />
         </div>
 
         {/* Recommendation */}
@@ -739,7 +866,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           <p className="text-xs text-ink-300 mb-2">General funding recommendation</p>
           <div className="flex gap-2">
             <button
-              onClick={() => setRecommendation('recommend')}
+              onClick={() => byHand(setRecommendation)('recommend')}
               className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium transition-all ${
                 recommendation === 'recommend'
                   ? 'bg-brand-500/20 text-brand-700 ring-1 ring-brand-400/40'
@@ -749,7 +876,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
               <CheckCircle2 size={15} /> Recommend (Yes)
             </button>
             <button
-              onClick={() => setRecommendation('do_not_fund')}
+              onClick={() => byHand(setRecommendation)('do_not_fund')}
               className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium transition-all ${
                 recommendation === 'do_not_fund'
                   ? 'bg-rose-500/20 text-rose-600 ring-1 ring-rose-400/40'
@@ -766,7 +893,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           <p className="text-xs text-ink-300 mb-2">Evaluator notes</p>
           <textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => byHand(setNotes)(e.target.value)}
             rows={3}
             className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none"
             placeholder="Recommendations, conditions, and other remarks..."
@@ -803,7 +930,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
   );
 }
 
-function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange, accentColor }: {
+function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange, accentColor, suggestions }: {
   appendix: string;
   title: string;
   subtitle: string;
@@ -811,6 +938,7 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
   scores: number[];
   onChange: (scores: number[]) => void;
   accentColor: 'brand' | 'slate' | 'amber';
+  suggestions?: CriterionSuggestion[];
 }) {
   const colorMap = { brand: 'text-brand-600', slate: 'text-slate-600', amber: 'text-amber-600' };
   const dotColorMap = { brand: 'bg-brand-500', slate: 'bg-slate-500', amber: 'bg-amber-500' };
@@ -833,7 +961,17 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
           return (
             <div key={item} className="flex items-center gap-3 py-2.5 group">
               <span className="text-[11px] text-ink-400 w-4 flex-shrink-0 font-medium">{i + 1}</span>
-              <span className="text-xs text-ink-200 flex-1 leading-snug">{item}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-ink-200 leading-snug">{item}</p>
+                {suggestions?.[i] && (
+                  <p className="mt-1 text-[11px] text-ink-400 leading-snug flex items-start gap-1">
+                    <Sparkles size={10} className="text-brand mt-0.5 flex-shrink-0" />
+                    <span>
+                      <span className="font-semibold text-ink-300">AI {suggestions[i].score}/10:</span> {suggestions[i].reason}
+                    </span>
+                  </p>
+                )}
+              </div>
               {/* Dot-on-track */}
               <div className="relative flex items-center w-32 flex-shrink-0 cursor-pointer">
                 <div className="w-full h-0.5 bg-ink-600/40 rounded-full" />
