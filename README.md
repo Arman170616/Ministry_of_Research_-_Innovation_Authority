@@ -56,6 +56,17 @@ Open http://localhost:5173. In development Vite forwards every `/api` request to
 
 The Django admin is at http://127.0.0.1:8000/admin/ for managing users and data.
 
+## Languages: English and Arabic
+
+The whole interface is available in **English** and **Arabic (العربية)**. Use the switch in the header or on the login page; the choice is remembered in the browser.
+
+- Arabic switches the layout to **right-to-left** (sidebar on the right, mirrored arrows and sliders) and uses the Cairo typeface.
+- Dates, amounts and statuses are shown in the selected language, e.g. "72,000 ر.ع.".
+- Proposal content (titles, abstracts, keywords) is shown as written, in its own text direction.
+- With AI on, match reasons and evaluation comments are written in the selected language.
+
+**Adding or changing text:** components wrap English text in `t('...')` from [`src/lib/i18n.tsx`](src/lib/i18n.tsx). The Arabic text lives in [`src/lib/i18n-ar.ts`](src/lib/i18n-ar.ts), keyed by the English text. Missing translations fall back to English and are listed in the browser console during development.
+
 ## AI analysis
 
 When `ANTHROPIC_API_KEY` is set in `backend/.env`, Claude helps reviewers at three points. Everything it produces is a suggestion that a person checks and can change.

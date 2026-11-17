@@ -1,5 +1,7 @@
 import { LayoutDashboard, FileText, BookOpen, GitCompare, X, LogOut, type LucideIcon } from 'lucide-react';
 
+import { useI18n } from '@/lib/i18n';
+
 export type View = 'dashboard' | 'proposals' | 'publications' | 'matching';
 
 interface SidebarProps {
@@ -19,23 +21,24 @@ const NAV_ITEMS: { id: View; label: string; icon: LucideIcon }[] = [
 ];
 
 export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEmail, onSignOut }: SidebarProps) {
+  const { t } = useI18n();
   return (
     <>
       {/* Mobile overlay */}
       {mobileOpen && <div className="fixed inset-0 bg-slate-900/30 z-30 md:hidden" onClick={onCloseMobile} />}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-64 z-40 md:z-0 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed md:sticky top-0 start-0 h-screen w-64 z-40 md:z-0 flex flex-col bg-white border-e border-slate-200 transition-transform duration-300 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full md:translate-x-0 md:rtl:translate-x-0'
         }`}
       >
         <div className="h-1 bg-brand flex-shrink-0" />
 
         {/* Logo */}
         <div className="relative px-5 pt-6 pb-5 border-b border-slate-200">
-          <img src="/images/ria-logo.png" alt="Research and Innovation Authority" className="h-11 w-auto" />
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Research Portal</p>
-          <button onClick={onCloseMobile} className="absolute right-3 top-5 md:hidden text-ink-300 hover:text-ink-50" aria-label="Close menu">
+          <img src="/images/ria-logo.png" alt={t('Research and Innovation Authority')} className="h-11 w-auto" />
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">{t('Research Portal')}</p>
+          <button onClick={onCloseMobile} className="absolute end-3 top-5 md:hidden text-ink-300 hover:text-ink-50" aria-label={t('Close menu')}>
             <X size={20} />
           </button>
         </div>
@@ -59,9 +62,9 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
                     : 'text-ink-300 hover:text-ink-50 hover:bg-slate-100'
                 }`}
               >
-                {active && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-brand" />}
+                {active && <span className="absolute start-0 top-2 bottom-2 w-1 rounded-e-full bg-brand" />}
                 <Icon size={18} className={active ? 'text-brand' : 'text-ink-400'} />
-                {item.label}
+                {t(item.label)}
               </button>
             );
           })}
@@ -75,16 +78,16 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-ink-100 font-medium truncate">{userEmail}</p>
-              <p className="text-[10px] text-ink-400">Signed in</p>
+              <p className="text-[10px] text-ink-400">{t('Signed in')}</p>
             </div>
-            <button onClick={onSignOut} className="rounded-lg p-1.5 text-ink-400 hover:text-brand hover:bg-brand-50 transition-colors" title="Sign out" aria-label="Sign out">
+            <button onClick={onSignOut} className="rounded-lg p-1.5 text-ink-400 hover:text-brand hover:bg-brand-50 transition-colors" title={t('Sign out')} aria-label={t('Sign out')}>
               <LogOut size={15} />
             </button>
           </div>
           <div className="glass-card rounded-xl p-3">
-            <p className="text-[10px] text-ink-300 uppercase tracking-wider mb-1">Powered by</p>
-            <p className="text-xs text-ink-100 font-medium">Sultanate of Oman</p>
-            <p className="text-[10px] text-ink-400">Research Proposal Management Platform</p>
+            <p className="text-[10px] text-ink-300 uppercase tracking-wider mb-1">{t('Powered by')}</p>
+            <p className="text-xs text-ink-100 font-medium">{t('Sultanate of Oman')}</p>
+            <p className="text-[10px] text-ink-400">{t('Research Proposal Management Platform')}</p>
           </div>
         </div>
       </aside>

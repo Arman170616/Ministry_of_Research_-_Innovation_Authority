@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { auth } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
+import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
 const LOGO_SRC = '/images/ria-logo.png';
 
@@ -31,6 +32,7 @@ function LatticePattern() {
 }
 
 export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -42,11 +44,11 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'signin' && (!username || !password)) {
-      setError('Please enter your username and password.');
+      setError(t('Please enter your username and password.'));
       return;
     }
     if (mode === 'signup' && (!email || !password)) {
-      setError('Please enter your email and password.');
+      setError(t('Please enter your email and password.'));
       return;
     }
     setLoading(true);
@@ -59,7 +61,7 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
         : await auth.register(email, password);
       onAuthed(user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setError(t(err instanceof Error ? err.message : 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -87,16 +89,16 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#c8102e]" />
 
         <div className="relative">
-          <img src={LOGO_SRC} alt="Research and Innovation Authority" className="h-20 w-auto mix-blend-multiply xl:h-24" />
+          <img src={LOGO_SRC} alt={t('Research and Innovation Authority')} className="h-20 w-auto mix-blend-multiply xl:h-24" />
         </div>
 
         <div className="relative max-w-lg">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8102e]">Research Portal</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8102e]">{t('Research Portal')}</p>
           <h1 className="text-4xl font-bold leading-tight text-slate-900 xl:text-[2.75rem]">
-            Research Proposal Matching Platform
+            {t('Research Proposal Matching Platform')}
           </h1>
           <p className="mt-4 text-base leading-relaxed text-slate-600">
-            A single workspace for reviewing national research funding proposals — from submission through matching to final evaluation.
+            {t('A single workspace for reviewing national research funding proposals — from submission through matching to final evaluation.')}
           </p>
 
           <ol className="mt-10 space-y-5">
@@ -107,9 +109,9 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
-                    <span className="mr-2 text-slate-400">0{i + 1}</span>{title}
+                    <span className="me-2 text-slate-400">0{i + 1}</span>{t(title)}
                   </p>
-                  <p className="text-sm text-slate-600">{text}</p>
+                  <p className="text-sm text-slate-600">{t(text)}</p>
                 </div>
               </li>
             ))}
@@ -117,25 +119,28 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
         </div>
 
         <p className="relative text-xs text-slate-500">
-          © {new Date().getFullYear()} Research and Innovation Authority · Sultanate of Oman
+          © {new Date().getFullYear()} {t('Research and Innovation Authority · Sultanate of Oman')}
         </p>
       </aside>
 
       {/* ── Form panel ── */}
-      <main className="flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col">
         <div className="h-1.5 bg-[#c8102e] lg:hidden" />
+        <div className="flex justify-end px-4 pt-4 sm:px-8">
+          <LanguageSwitch />
+        </div>
         <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
           <div className="w-full max-w-[420px] slide-up">
             {/* Mobile logo */}
-            <img src={LOGO_SRC} alt="Research and Innovation Authority" className="mx-auto mb-10 h-16 w-auto lg:hidden" />
+            <img src={LOGO_SRC} alt={t('Research and Innovation Authority')} className="mx-auto mb-10 h-16 w-auto lg:hidden" />
 
             <h2 className="text-3xl font-bold text-slate-900">
-              {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+              {mode === 'signin' ? t('Welcome back') : t('Create your account')}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               {mode === 'signin'
-                ? 'Sign in with your authority credentials to continue.'
-                : 'Register with your email to access the research portal.'}
+                ? t('Sign in with your authority credentials to continue.')
+                : t('Register with your email to access the research portal.')}
             </p>
 
             {/* Mode toggle */}
@@ -151,7 +156,7 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
                     mode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  {m === 'signin' ? 'Sign in' : 'Sign up'}
+                  {m === 'signin' ? t('Sign in') : t('Sign up')}
                 </button>
               ))}
             </div>
@@ -166,15 +171,16 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               {mode === 'signin' ? (
                 <div>
-                  <label htmlFor="username" className={labelCls}>Username</label>
+                  <label htmlFor="username" className={labelCls}>{t('Username')}</label>
                   <div className={fieldWrap}>
                     <User size={18} className="flex-shrink-0 text-slate-400" />
                     <input
                       id="username"
+                      dir="auto"
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
+                      placeholder={t('Enter your username')}
                       autoComplete="username"
                       className="flex-1 bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-400"
                     />
@@ -182,11 +188,12 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
                 </div>
               ) : (
                 <div>
-                  <label htmlFor="email" className={labelCls}>Email</label>
+                  <label htmlFor="email" className={labelCls}>{t('Email')}</label>
                   <div className={fieldWrap}>
                     <Mail size={18} className="flex-shrink-0 text-slate-400" />
                     <input
                       id="email"
+                      dir="auto"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -199,22 +206,23 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
               )}
 
               <div>
-                <label htmlFor="password" className={labelCls}>Password</label>
+                <label htmlFor="password" className={labelCls}>{t('Password')}</label>
                 <div className={fieldWrap}>
                   <Lock size={18} className="flex-shrink-0 text-slate-400" />
                   <input
                     id="password"
+                      dir="auto"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'signup' ? 'Choose a password' : 'Enter your password'}
+                    placeholder={mode === 'signup' ? t('Choose a password') : t('Enter your password')}
                     autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                     className="flex-1 bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('Hide password') : t('Show password')}
                     className="flex-shrink-0 text-slate-400 transition hover:text-slate-700"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -231,28 +239,28 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
                   <>
-                    {mode === 'signin' ? 'Sign in' : 'Create account'}
-                    <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
+                    {mode === 'signin' ? t('Sign in') : t('Create account')}
+                    <ArrowRight size={16} className="transition group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
                   </>
                 )}
               </button>
             </form>
 
             <p className="mt-8 text-center text-sm text-slate-600">
-              {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+              {mode === 'signin' ? t("Don't have an account?") : t('Already have an account?')}{' '}
               <button
                 type="button"
                 onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
                 className="font-semibold text-[#c8102e] hover:underline"
               >
-                {mode === 'signin' ? 'Sign up' : 'Sign in'}
+                {mode === 'signin' ? t('Sign up') : t('Sign in')}
               </button>
             </p>
           </div>
         </div>
 
         <p className="pb-6 text-center text-xs text-slate-400 lg:hidden">
-          © {new Date().getFullYear()} Research and Innovation Authority · Sultanate of Oman
+          © {new Date().getFullYear()} {t('Research and Innovation Authority · Sultanate of Oman')}
         </p>
       </main>
     </div>

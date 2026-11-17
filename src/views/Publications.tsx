@@ -3,9 +3,11 @@ import { BookOpen, Upload, Filter, X, Search, Calendar, Quote, Tag, ChevronRight
 import type { Publication } from '@/lib/types';
 import { usePublications, createPublication } from '@/lib/hooks';
 import { Modal, Toast } from '@/components/ui';
-import { formatDate, RESEARCH_AREAS } from '@/lib/utils';
+import { formatDate, formatNumber, RESEARCH_AREAS } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 export function Publications() {
+  const { t } = useI18n();
   const { publications, loading, refresh } = usePublications();
   const [search, setSearch] = useState('');
   const [areaFilter, setAreaFilter] = useState('all');
@@ -45,22 +47,22 @@ export function Publications() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search publications, authors, journals..."
+            placeholder={t('Search publications, authors, journals...')}
             className="bg-transparent border-0 outline-none text-sm text-ink-50 placeholder:text-ink-400 flex-1"
           />
-          {search && <button onClick={() => setSearch('')} className="text-ink-300 hover:text-ink-50"><X size={14} /></button>}
+          {search && <button onClick={() => setSearch('')} className="text-ink-300 hover:text-ink-50" aria-label={t('Clear search')}><X size={14} /></button>}
         </div>
         <button onClick={() => setShowFilters(!showFilters)} className={`btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 ${showFilters ? 'ring-1 ring-brand-400/40' : ''}`}>
-          <Filter size={16} /> Filters
-          {activeFilters > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
+          <Filter size={16} /> {t('Filters')}
+          {activeFilters > 0 && <span className="ms-1 w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
         </button>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'date' | 'citations' | 'title')} className="glass-input glass-select rounded-xl px-3 py-2 text-sm">
-          <option value="date">Sort: Date</option>
-          <option value="citations">Sort: Citations</option>
-          <option value="title">Sort: Title</option>
+          <option value="date">{t('Sort: Date')}</option>
+          <option value="citations">{t('Sort: Citations')}</option>
+          <option value="title">{t('Sort: Title')}</option>
         </select>
         <button onClick={() => setShowUpload(true)} className="btn-solid rounded-xl px-4 py-2 text-sm font-semibold flex items-center gap-2">
-          <Upload size={16} /> Upload Publication
+          <Upload size={16} /> {t('Upload Publication')}
         </button>
       </div>
 
@@ -69,57 +71,57 @@ export function Publications() {
         <div className="glass-card rounded-2xl p-4 slide-up">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-ink-300 mb-1.5 block">Research Area</label>
+              <label className="text-xs text-ink-300 mb-1.5 block">{t('Research Area')}</label>
               <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className="glass-input glass-select rounded-xl px-3 py-2 text-sm w-full">
-                <option value="all">All Areas</option>
-                {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                <option value="all">{t('All Areas')}</option>
+                {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> Published From</label>
+              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Published From')}</label>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
             </div>
             <div>
-              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> Published To</label>
+              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Published To')}</label>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
             </div>
           </div>
           {activeFilters > 0 && (
             <button onClick={() => { setAreaFilter('all'); setDateFrom(''); setDateTo(''); }} className="mt-3 text-xs text-brand hover:text-brand-700 flex items-center gap-1">
-              <X size={12} /> Clear all filters
+              <X size={12} /> {t('Clear all filters')}
             </button>
           )}
         </div>
       )}
 
-      <p className="text-sm text-ink-300 px-1">{loading ? 'Loading...' : `${filtered.length} publication${filtered.length !== 1 ? 's' : ''} found`}</p>
+      <p className="text-sm text-ink-300 px-1">{loading ? t('Loading...') : t(filtered.length === 1 ? '{count} publication found' : '{count} publications found', { count: filtered.length })}</p>
 
       {loading ? (
-        <div className="glass-card rounded-2xl p-8 text-center text-ink-300">Loading publications...</div>
+        <div className="glass-card rounded-2xl p-8 text-center text-ink-300">{t('Loading publications...')}</div>
       ) : filtered.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 text-center">
           <BookOpen size={40} className="text-ink-400 mx-auto mb-3" />
-          <p className="text-ink-200">No publications match your filters</p>
+          <p className="text-ink-200">{t('No publications match your filters')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((p) => (
-            <button key={p.id} onClick={() => setSelected(p)} className="glass-card rounded-2xl p-5 text-left group">
+            <button key={p.id} onClick={() => setSelected(p)} className="glass-card rounded-2xl p-5 text-start group">
               <div className="flex items-start justify-between mb-3">
                 <div className="glass rounded-lg p-2">
                   <BookOpen size={16} className="text-slate-600" />
                 </div>
                 <div className="flex items-center gap-1 text-xs text-amber-600">
-                  <Quote size={12} /> {p.citation_count}
+                  <Quote size={12} /> {formatNumber(p.citation_count)}
                 </div>
               </div>
-              <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-brand transition-colors">{p.title}</h3>
-              <p className="text-xs text-ink-300 mb-2">{p.authors}</p>
-              {p.journal && <p className="text-xs text-ink-400 italic mb-2 truncate">{p.journal}</p>}
-              {p.research_area && <span className="chip mb-2">{p.research_area}</span>}
+              <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-brand transition-colors" dir="auto">{p.title}</h3>
+              <p className="text-xs text-ink-300 mb-2" dir="auto">{p.authors}</p>
+              {p.journal && <p className="text-xs text-ink-400 italic mb-2 truncate" dir="auto">{p.journal}</p>}
+              {p.research_area && <span className="chip mb-2">{t(p.research_area)}</span>}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-700/20">
                 <span className="text-xs text-ink-300 flex items-center gap-1"><Calendar size={12} /> {formatDate(p.publication_date)}</span>
-                {p.doi && <span className="text-[10px] text-slate-600/70 font-mono">{p.doi}</span>}
+                {p.doi && <span className="text-[10px] text-slate-600/70 font-mono" dir="ltr">{p.doi}</span>}
               </div>
               {p.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-3">
@@ -133,34 +135,34 @@ export function Publications() {
       )}
 
       {/* Detail modal */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="Publication Details">
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={t('Publication Details')}>
         {selected && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold text-ink-50">{selected.title}</h3>
+              <h3 className="text-lg font-semibold text-ink-50" dir="auto">{selected.title}</h3>
               <p className="text-sm text-ink-300 mt-1 flex items-center gap-1"><Users size={14} /> {selected.authors}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <InfoRow icon={BookOpen} label="Journal" value={selected.journal ?? '—'} />
-              <InfoRow icon={Quote} label="Citations" value={String(selected.citation_count)} />
-              <InfoRow icon={Calendar} label="Published" value={formatDate(selected.publication_date)} />
-              <InfoRow icon={Tag} label="Research Area" value={selected.research_area ?? '—'} />
+              <InfoRow icon={BookOpen} label={t('Journal')} value={selected.journal ?? '—'} />
+              <InfoRow icon={Quote} label={t('Citations')} value={formatNumber(selected.citation_count)} />
+              <InfoRow icon={Calendar} label={t('Published')} value={formatDate(selected.publication_date)} />
+              <InfoRow icon={Tag} label={t('Research Area')} value={selected.research_area ? t(selected.research_area) : '—'} />
             </div>
             {selected.doi && (
               <div className="glass rounded-xl p-3 flex items-center justify-between">
                 <span className="text-xs text-ink-300">DOI</span>
-                <span className="text-xs text-slate-600 font-mono">{selected.doi}</span>
+                <span className="text-xs text-slate-600 font-mono" dir="ltr">{selected.doi}</span>
               </div>
             )}
             {selected.abstract && (
               <div>
-                <p className="text-xs text-ink-300 mb-1">Abstract</p>
-                <p className="text-sm text-ink-100 leading-relaxed">{selected.abstract}</p>
+                <p className="text-xs text-ink-300 mb-1">{t('Abstract')}</p>
+                <p className="text-sm text-ink-100 leading-relaxed" dir="auto">{selected.abstract}</p>
               </div>
             )}
             {selected.keywords.length > 0 && (
               <div>
-                <p className="text-xs text-ink-300 mb-2 flex items-center gap-1"><Tag size={12} /> Keywords</p>
+                <p className="text-xs text-ink-300 mb-2 flex items-center gap-1"><Tag size={12} /> {t('Keywords')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {selected.keywords.map((k) => <span key={k} className="chip">{k}</span>)}
                 </div>
@@ -168,14 +170,14 @@ export function Publications() {
             )}
             {selected.document_url && (
               <a href={selected.document_url} target="_blank" rel="noreferrer" className="btn-liquid rounded-xl px-4 py-2 text-sm flex items-center gap-2 w-fit">
-                <ExternalLink size={14} /> View Document
+                <ExternalLink size={14} /> {t('View Document')}
               </a>
             )}
           </div>
         )}
       </Modal>
 
-      <UploadPubModal open={showUpload} onClose={() => setShowUpload(false)} onCreated={async () => { await refresh(); setShowUpload(false); setToast({ message: 'Publication uploaded successfully', type: 'success' }); }} />
+      <UploadPubModal open={showUpload} onClose={() => setShowUpload(false)} onCreated={async () => { await refresh(); setShowUpload(false); setToast({ message: t('Publication uploaded successfully'), type: 'success' }); }} />
 
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
@@ -192,6 +194,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string
 }
 
 function UploadPubModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const { t } = useI18n();
   const [form, setForm] = useState({
     title: '', authors: '', journal: '', research_area: '', abstract: '', document_url: '', doi: '', publication_date: '', keywords: '', citation_count: '',
   });
@@ -199,7 +202,7 @@ function UploadPubModal({ open, onClose, onCreated }: { open: boolean; onClose: 
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!form.title || !form.authors) { setError('Title and authors are required'); return; }
+    if (!form.title || !form.authors) { setError(t('Title and authors are required')); return; }
     setSaving(true);
     setError(null);
     const ok = await createPublication({
@@ -219,53 +222,53 @@ function UploadPubModal({ open, onClose, onCreated }: { open: boolean; onClose: 
       setForm({ title: '', authors: '', journal: '', research_area: '', abstract: '', document_url: '', doi: '', publication_date: '', keywords: '', citation_count: '' });
       onCreated();
     } else {
-      setError('Failed to save publication');
+      setError(t('Failed to save publication'));
     }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Upload New Publication">
+    <Modal open={open} onClose={onClose} title={t('Upload New Publication')}>
       <div className="space-y-4">
         {error && <div className="glass rounded-xl p-3 text-sm text-rose-600 border border-rose-400/30">{error}</div>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Title *">
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="Publication title" />
+          <Field label={t('Title *')}>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder={t('Publication title')} />
           </Field>
-          <Field label="Authors *">
-            <input value={form.authors} onChange={(e) => setForm({ ...form, authors: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="Author names" />
+          <Field label={t('Authors *')}>
+            <input value={form.authors} onChange={(e) => setForm({ ...form, authors: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder={t('Author names')} />
           </Field>
-          <Field label="Journal / Conference">
-            <input value={form.journal} onChange={(e) => setForm({ ...form, journal: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="Journal name" />
+          <Field label={t('Journal / Conference')}>
+            <input value={form.journal} onChange={(e) => setForm({ ...form, journal: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder={t('Journal name')} />
           </Field>
-          <Field label="Research Area">
+          <Field label={t('Research Area')}>
             <select value={form.research_area} onChange={(e) => setForm({ ...form, research_area: e.target.value })} className="glass-input glass-select rounded-xl px-3 py-2 text-sm w-full">
-              <option value="">Select area...</option>
-              {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+              <option value="">{t('Select area...')}</option>
+              {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
             </select>
           </Field>
-          <Field label="Publication Date">
+          <Field label={t('Publication Date')}>
             <input type="date" value={form.publication_date} onChange={(e) => setForm({ ...form, publication_date: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
           </Field>
-          <Field label="DOI">
+          <Field label={t('DOI')}>
             <input value={form.doi} onChange={(e) => setForm({ ...form, doi: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="10.xxxx/..." />
           </Field>
-          <Field label="Citation Count">
+          <Field label={t('Citation Count')}>
             <input type="number" value={form.citation_count} onChange={(e) => setForm({ ...form, citation_count: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="0" />
           </Field>
-          <Field label="Document URL">
+          <Field label={t('Document URL')}>
             <input value={form.document_url} onChange={(e) => setForm({ ...form, document_url: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="https://..." />
           </Field>
         </div>
-        <Field label="Abstract">
-          <textarea value={form.abstract} onChange={(e) => setForm({ ...form, abstract: e.target.value })} rows={3} className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none" placeholder="Publication summary..." />
+        <Field label={t('Abstract')}>
+          <textarea value={form.abstract} onChange={(e) => setForm({ ...form, abstract: e.target.value })} rows={3} className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none" placeholder={t('Publication summary...')} />
         </Field>
-        <Field label="Keywords (comma-separated)">
-          <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="solar, energy, desert" />
+        <Field label={t('Keywords (comma-separated)')}>
+          <input value={form.keywords} onChange={(e) => setForm({ ...form, keywords: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder={t('solar, energy, desert')} />
         </Field>
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="glass-card rounded-xl px-4 py-2 text-sm text-ink-200 hover:text-ink-50">Cancel</button>
+          <button onClick={onClose} className="glass-card rounded-xl px-4 py-2 text-sm text-ink-200 hover:text-ink-50">{t('Cancel')}</button>
           <button onClick={handleSubmit} disabled={saving} className="btn-solid rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-50">
-            {saving ? 'Saving...' : 'Upload Publication'}
+            {saving ? t('Saving...') : t('Upload Publication')}
           </button>
         </div>
       </div>

@@ -89,6 +89,14 @@ SYSTEM = (
 )
 
 
+def language_rule(language: str) -> str:
+    """Instruction for the language of free-text answers (reasons, summaries)."""
+    if language == 'ar':
+        return ('Write every reason, summary, strength and weakness in clear formal Modern Standard Arabic. '
+                'Keep shared_topics, names, titles and numbers as they appear in the source.')
+    return 'Write every reason, summary, strength and weakness in English.'
+
+
 class AIError(Exception):
     """A problem the person using the app should see (shown as the API error message)."""
 
@@ -279,7 +287,7 @@ def _proposal_brief(proposal, max_chars: int = 6000) -> str:
     ]).strip()
 
 
-def match_publications(proposal, publications) -> list[dict]:
+def match_publications(proposal, publications, language: str = 'en') -> list[dict]:
     """Rate how relevant each publication is to the proposal. Returns matches scoring MIN_MATCH_SCORE or more."""
     publications = list(publications)
     by_id = {str(p.id): p for p in publications}
@@ -304,7 +312,8 @@ same methods, or provide evidence the proposal would build on? Judge by meaning,
 Score each publication 0-100:
 80-100 same problem and approach; 50-79 closely related problem or method; 20-49 partly related; 0-19 unrelated.
 For every publication scoring {MIN_MATCH_SCORE} or more, return its id exactly as given, the score, 1-4 short
-lowercase shared_topics, and a one-sentence reason a reviewer can check. Leave out publications below {MIN_MATCH_SCORE}."""
+lowercase shared_topics in English, and a one-sentence reason a reviewer can check. Leave out publications below {MIN_MATCH_SCORE}.
+{language_rule(language)}"""
         answer = _ask([{'type': 'text', 'text': prompt}], MATCH_SCHEMA, effort='medium')
         for m in answer.get('matches') or []:
             pid = str(m.get('publication_id'))
@@ -354,7 +363,7 @@ EVALUATE_SCHEMA = {
 }
 
 
-def suggest_evaluation(proposal, matches) -> dict:
+def suggest_evaluation(proposal, matches, language: str = 'en') -> dict:
     """Suggest scores for every evaluation criterion, with a short reason for each."""
     def numbered(key):
         return '\n'.join(f'{i + 1}. {c}' for i, c in enumerate(CRITERIA[key]))
@@ -400,7 +409,8 @@ Score what the document shows: a claim without evidence, a missing plan, an unre
 absent partners and co-funding should lower the relevant scores.
 Also give: scientific_capacity and leadership (1-10) for the team and principal investigator; team_size (number of
 named researchers, at least 1); recommendation (recommend or do_not_fund); a 2-3 sentence summary for the reviewer;
-and up to 4 strengths and 4 weaknesses, each one short sentence."""
+and up to 4 strengths and 4 weaknesses, each one short sentence.
+{language_rule(language)}"""
     answer = _ask([{'type': 'text', 'text': prompt}], EVALUATE_SCHEMA, effort='high')
 
     def section(key):

@@ -1,21 +1,37 @@
 import type { ProposalStatus, MatchStatus } from '@/lib/types';
+import { getLang, locale, translate } from '@/lib/i18n';
 
 export function formatDate(date: string | null): string {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('en-GB', {
+  return new Date(date).toLocaleDateString(locale(), {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
 }
 
-export function formatCurrency(amount: number | null): string {
-  if (amount === null || amount === undefined) return '—';
-  return `OMR ${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+export function formatNumber(value: number): string {
+  return value.toLocaleString(locale(), { maximumFractionDigits: 0 });
 }
 
+/** "OMR 72,000" in English, "72,000 ر.ع." in Arabic. */
+export function formatCurrency(amount: number | null): string {
+  if (amount === null || amount === undefined) return '—';
+  const n = formatNumber(amount);
+  return getLang() === 'ar' ? `${n} ر.ع.` : `OMR ${n}`;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  under_review: 'Under Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  reviewed: 'Reviewed',
+  accepted: 'Accepted',
+};
+
 export function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ');
+  return translate(STATUS_LABELS[status] ?? status.replace(/_/g, ' '));
 }
 
 export const PROPOSAL_STATUSES: ProposalStatus[] = ['pending', 'under_review', 'approved', 'rejected'];

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 /** Page background: warm off-white with the faint Omani lattice used on the login page. */
 export function LiquidBackground() {
@@ -49,6 +50,7 @@ export function ScoreRing({ score, size = 60 }: { score: number; size?: number }
 }
 
 export function Modal({ open, onClose, children, title }: { open: boolean; onClose: () => void; children: React.ReactNode; title: string }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -68,7 +70,7 @@ export function Modal({ open, onClose, children, title }: { open: boolean; onClo
       <div className="glass-strong relative z-10 w-full max-w-2xl rounded-3xl p-6 slide-up max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-ink-50">{title}</h2>
-          <button onClick={onClose} className="text-ink-200 hover:text-ink-50 transition-colors text-2xl leading-none">
+          <button onClick={onClose} className="text-ink-200 hover:text-ink-50 transition-colors text-2xl leading-none" aria-label={t('Close')}>
             &times;
           </button>
         </div>
@@ -88,7 +90,7 @@ export function Toast({ message, type = 'success' }: { message: string; type?: '
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 slide-up">
+    <div className="fixed bottom-6 end-6 z-50 slide-up">
       <div className={`glass-strong rounded-2xl px-5 py-3 flex items-center gap-3 ${type === 'success' ? 'border-emerald-300' : 'border-brand-200'}`}>
         <div className={`w-2 h-2 rounded-full ${type === 'success' ? 'bg-emerald-500' : 'bg-brand'}`} />
         <span className="text-sm text-ink-50">{message}</span>

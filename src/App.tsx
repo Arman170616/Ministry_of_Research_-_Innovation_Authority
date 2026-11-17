@@ -10,6 +10,7 @@ import { Login } from '@/views/Login';
 import { useProposals, usePublications, useMatches } from '@/lib/hooks';
 import { auth, UNAUTHORIZED_EVENT } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 
 const VIEW_META: Record<View, { title: string; subtitle: string }> = {
   dashboard: { title: 'Research Dashboard', subtitle: 'Overview of proposals, publications, and matching activity' },
@@ -47,14 +48,20 @@ export default function App() {
     setUser(null);
   };
 
-  if (!authReady) return <FullScreenMessage>Loading...</FullScreenMessage>;
+  if (!authReady) return <FullScreenMessage><LoadingText /></FullScreenMessage>;
   if (!user) return <Login onAuthed={setUser} />;
 
   // Keyed by user so nothing from a previous session's data survives a sign-in as someone else.
   return <Workspace key={user.id} user={user} onSignOut={handleSignOut} />;
 }
 
+function LoadingText() {
+  const { t } = useI18n();
+  return <>{t('Loading...')}</>;
+}
+
 function Workspace({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
+  const { t } = useI18n();
   const [view, setView] = useState<View>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -81,14 +88,14 @@ function Workspace({ user, onSignOut }: { user: AuthUser; onSignOut: () => void 
 
         <div className="flex-1 min-w-0">
           <Header
-            title={meta.title}
-            subtitle={meta.subtitle}
+            title={t(meta.title)}
+            subtitle={t(meta.subtitle)}
             onOpenMobile={() => setMobileOpen(true)}
           />
 
           <main className="p-4 md:p-8 max-w-7xl mx-auto">
             {loading ? (
-              <div className="glass-card rounded-2xl p-12 text-center text-ink-300">Loading data...</div>
+              <div className="glass-card rounded-2xl p-12 text-center text-ink-300">{t('Loading data...')}</div>
             ) : (
               <>
                 {view === 'dashboard' && <Dashboard proposals={proposals} publications={publications} matches={matches} />}

@@ -9,6 +9,7 @@ import type { Proposal, MatchWithRelations, MatchStatus, MatchRun, EvaluationSug
 import { createProposal, generateMatchesForProposal, saveEvaluation, extractDocument, suggestEvaluation } from '@/lib/hooks';
 import { formatDate, formatCurrency, OMAN_VISION_PILLARS, FUNDING_TIERS, RESEARCH_AREAS } from '@/lib/utils';
 import { ScoreRing } from '@/components/ui';
+import { useI18n } from '@/lib/i18n';
 
 type Step = 'upload' | 'extracting' | 'review' | 'matching' | 'report' | 'evaluation';
 
@@ -38,6 +39,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
   onClose: () => void;
   onComplete: (proposal: Proposal, matches: MatchWithRelations[]) => void;
 }) {
+  const { t, lang } = useI18n();
   const [step, setStep] = useState<Step>('upload');
   const [fileName, setFileName] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -104,8 +106,8 @@ export function ProposalWizard({ open, onClose, onComplete }: {
       setExtractInfo({
         ok: doc.is_research_proposal,
         message: doc.is_research_proposal
-          ? 'AI read the document and filled in the fields below. Please check them before continuing.'
-          : 'This file does not look like a research proposal. Please check the fields carefully.',
+          ? t('AI read the document and filled in the fields below. Please check them before continuing.')
+          : t('This file does not look like a research proposal. Please check the fields carefully.'),
         missing: doc.missing_fields,
       });
     } catch (err) {
@@ -117,7 +119,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
       });
       setExtractInfo({
         ok: false,
-        message: `${err instanceof Error ? err.message : 'AI reading failed.'} Please fill in the fields yourself.`,
+        message: `${t(err instanceof Error ? err.message : 'AI reading failed.')} ${t('Please fill in the fields yourself.')}`,
         missing: [],
       });
     }
@@ -126,7 +128,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
 
   const handleReviewSubmit = async () => {
     if (!extracted) return;
-    if (!extracted.title || !extracted.author) { setError('Title and author are required'); return; }
+    if (!extracted.title || !extracted.author) { setError(t('Title and author are required')); return; }
     setStep('matching');
     setError(null);
 
@@ -145,10 +147,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
       document_text: documentText,
     });
 
-    if (!proposal) { setError('Failed to save proposal. Check that you are signed in.'); setStep('review'); return; }
+    if (!proposal) { setError(t('Failed to save proposal. Check that you are signed in.')); setStep('review'); return; }
 
     setSavedProposal(proposal);
-    const run = await generateMatchesForProposal(proposal.id);
+    const run = await generateMatchesForProposal(proposal.id, lang);
     setMatchResults(run.matches);
     setMatchRun({ method: run.method, warning: run.warning });
     setStep('report');
@@ -169,11 +171,11 @@ export function ProposalWizard({ open, onClose, onComplete }: {
               <FileText size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-ink-50">Submit Proposal & Generate Report</h2>
-              <p className="text-xs text-ink-300">Upload a document — we'll extract the details automatically</p>
+              <h2 className="text-lg font-semibold text-ink-50">{t('Submit Proposal & Generate Report')}</h2>
+              <p className="text-xs text-ink-300">{t("Upload a document — we'll extract the details automatically")}</p>
             </div>
           </div>
-          <button onClick={handleClose} className="text-ink-200 hover:text-ink-50 text-2xl leading-none">&times;</button>
+          <button onClick={handleClose} className="text-ink-200 hover:text-ink-50 text-2xl leading-none" aria-label={t('Close')}>&times;</button>
         </div>
 
         {/* Step indicator */}
@@ -189,10 +191,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                   done ? 'text-emerald-600' : 'text-ink-400'
                 }`}>
                   <Icon size={14} className={active && s.key === 'extracting' ? 'animate-spin' : ''} />
-                  <span>{s.label}</span>
+                  <span>{t(s.label)}</span>
                   {done && <Check size={12} className="text-emerald-600" />}
                 </div>
-                {i < STEPS.length - 1 && <ChevronRight size={14} className="text-ink-400 flex-shrink-0" />}
+                {i < STEPS.length - 1 && <ChevronRight size={14} className="text-ink-400 flex-shrink-0 rtl:-scale-x-100" />}
               </div>
             );
           })}
@@ -227,8 +229,8 @@ export function ProposalWizard({ open, onClose, onComplete }: {
               <div className="w-16 h-16 rounded-2xl glass mx-auto mb-4 flex items-center justify-center">
                 <Upload size={28} className="text-brand" />
               </div>
-              <p className="text-sm text-ink-100 font-medium mb-1">Drop your proposal document here</p>
-              <p className="text-xs text-ink-300">or click to browse — PDF or TXT, up to 15 MB</p>
+              <p className="text-sm text-ink-100 font-medium mb-1">{t('Drop your proposal document here')}</p>
+              <p className="text-xs text-ink-300">{t('or click to browse — PDF or TXT, up to 15 MB')}</p>
             </div>
 
             {fileName && (
@@ -252,8 +254,8 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 disabled={!fileName}
                 className="btn-solid rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               >
-                Submit & Generate Report
-                <ArrowRight size={16} />
+                {t('Submit & Generate Report')}
+                <ArrowRight size={16} className="rtl:-scale-x-100" />
               </button>
             </div>
           </div>
@@ -269,13 +271,13 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 <FileText size={32} className="text-brand" />
               </div>
             </div>
-            <h3 className="text-base font-semibold text-ink-50 mb-2">AI is reading the document...</h3>
-            <p className="text-sm text-ink-300 mb-4">Usually takes 5–20 seconds</p>
-            <div className="max-w-xs mx-auto space-y-2 text-left">
-              {['Reading the whole document', 'Finding title, team and institution', 'Finding budget and dates', 'Choosing research keywords'].map((t) => (
-                <div key={t} className="flex items-center gap-2 text-xs text-ink-300">
+            <h3 className="text-base font-semibold text-ink-50 mb-2">{t('AI is reading the document...')}</h3>
+            <p className="text-sm text-ink-300 mb-4">{t('Usually takes 5–20 seconds')}</p>
+            <div className="max-w-xs mx-auto space-y-2 text-start">
+              {['Reading the whole document', 'Finding title, team and institution', 'Finding budget and dates', 'Choosing research keywords'].map((line) => (
+                <div key={line} className="flex items-center gap-2 text-xs text-ink-300">
                   <Loader2 size={12} className="animate-spin text-brand-600" />
-                  <span>{t}</span>
+                  <span>{t(line)}</span>
                 </div>
               ))}
             </div>
@@ -292,50 +294,50 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                   <span>{extractInfo.message}</span>
                 </div>
                 {extractInfo.missing.length > 0 && (
-                  <p className="mt-1.5 pl-6">Not found in the document: {extractInfo.missing.join(', ')}.</p>
+                  <p className="mt-1.5 ps-6">{t('Not found in the document: {fields}.', { fields: extractInfo.missing.map((f) => t(f)).join(lang === 'ar' ? '، ' : ', ') })}</p>
                 )}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <ReviewField icon={FileText} label="Title *">
-                <input value={extracted.title} onChange={(e) => setExtracted({ ...extracted, title: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
+              <ReviewField icon={FileText} label={t('Title *')}>
+                <input dir="auto" value={extracted.title} onChange={(e) => setExtracted({ ...extracted, title: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
-              <ReviewField icon={User} label="Author *">
-                <input value={extracted.author} onChange={(e) => setExtracted({ ...extracted, author: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
+              <ReviewField icon={User} label={t('Author *')}>
+                <input dir="auto" value={extracted.author} onChange={(e) => setExtracted({ ...extracted, author: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
-              <ReviewField icon={Mail} label="Email">
-                <input value={extracted.author_email} onChange={(e) => setExtracted({ ...extracted, author_email: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="name@institution.om" />
+              <ReviewField icon={Mail} label={t('Email')}>
+                <input dir="auto" value={extracted.author_email} onChange={(e) => setExtracted({ ...extracted, author_email: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" placeholder="name@institution.om" />
               </ReviewField>
-              <ReviewField icon={Building2} label="Institution">
-                <input value={extracted.institution} onChange={(e) => setExtracted({ ...extracted, institution: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
+              <ReviewField icon={Building2} label={t('Institution')}>
+                <input dir="auto" value={extracted.institution} onChange={(e) => setExtracted({ ...extracted, institution: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
-              <ReviewField icon={Tag} label="Research Area">
+              <ReviewField icon={Tag} label={t('Research Area')}>
                 <select value={extracted.research_area} onChange={(e) => setExtracted({ ...extracted, research_area: e.target.value })} className="glass-input glass-select rounded-xl px-3 py-2 text-sm w-full">
-                  <option value="">Select area...</option>
-                  {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  <option value="">{t('Select area...')}</option>
+                  {RESEARCH_AREAS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
                 </select>
               </ReviewField>
-              <ReviewField icon={DollarSign} label="Funding Requested (OMR)">
+              <ReviewField icon={DollarSign} label={t('Funding Requested (OMR)')}>
                 <input type="number" value={extracted.funding_requested} onChange={(e) => setExtracted({ ...extracted, funding_requested: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
-              <ReviewField icon={Calendar} label="Publication Date">
+              <ReviewField icon={Calendar} label={t('Publication Date')}>
                 <input type="date" value={extracted.publication_date} onChange={(e) => setExtracted({ ...extracted, publication_date: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
-              <ReviewField icon={Tag} label="Keywords (comma-separated)">
-                <input value={extracted.keywords} onChange={(e) => setExtracted({ ...extracted, keywords: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
+              <ReviewField icon={Tag} label={t('Keywords (comma-separated)')}>
+                <input dir="auto" value={extracted.keywords} onChange={(e) => setExtracted({ ...extracted, keywords: e.target.value })} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
               </ReviewField>
             </div>
-            <ReviewField icon={FileText} label="Abstract">
-              <textarea value={extracted.abstract} onChange={(e) => setExtracted({ ...extracted, abstract: e.target.value })} rows={3} className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none" />
+            <ReviewField icon={FileText} label={t('Abstract')}>
+              <textarea dir="auto" value={extracted.abstract} onChange={(e) => setExtracted({ ...extracted, abstract: e.target.value })} rows={3} className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none" />
             </ReviewField>
 
             <div className="flex justify-between">
               <button onClick={() => setStep('upload')} className="glass-card rounded-xl px-4 py-2 text-sm text-ink-200 hover:text-ink-50 flex items-center gap-2">
-                <ArrowLeft size={14} /> Back
+                <ArrowLeft size={14} className="rtl:-scale-x-100" /> {t('Back')}
               </button>
               <button onClick={handleReviewSubmit} className="btn-solid rounded-xl px-6 py-2.5 text-sm font-semibold flex items-center gap-2">
-                Confirm & Match <ArrowRight size={14} />
+                {t('Confirm & Match')} <ArrowRight size={14} className="rtl:-scale-x-100" />
               </button>
             </div>
           </div>
@@ -351,8 +353,8 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 <Sparkles size={32} className="text-brand" />
               </div>
             </div>
-            <h3 className="text-base font-semibold text-ink-50 mb-2">Matching with publications...</h3>
-            <p className="text-sm text-ink-300">AI is comparing the proposal with every publication by meaning</p>
+            <h3 className="text-base font-semibold text-ink-50 mb-2">{t('Matching with publications...')}</h3>
+            <p className="text-sm text-ink-300">{t('AI is comparing the proposal with every publication by meaning')}</p>
           </div>
         )}
 
@@ -379,6 +381,7 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
   onContinue: () => void;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   const avgScore = matches.length > 0 ? matches.reduce((s, m) => s + m.match_score, 0) / matches.length : 0;
   const high = matches.filter((m) => m.match_score >= 80).length;
   const med = matches.filter((m) => m.match_score >= 40 && m.match_score < 80).length;
@@ -415,15 +418,15 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <FileText size={14} className="text-brand" />
-              <span className="text-[10px] text-ink-300 uppercase tracking-wider">Uploaded Proposal</span>
+              <span className="text-[10px] text-ink-300 uppercase tracking-wider">{t('Uploaded Proposal')}</span>
             </div>
-            <p className="text-sm font-semibold text-ink-50">{proposal.title}</p>
-            <p className="text-xs text-ink-300 mt-1">{proposal.author} · {proposal.research_area ?? '—'} · {formatDate(proposal.publication_date)}</p>
-            {proposal.abstract && <p className="text-xs text-ink-200 mt-2 line-clamp-2">{proposal.abstract}</p>}
+            <p className="text-sm font-semibold text-ink-50" dir="auto">{proposal.title}</p>
+            <p className="text-xs text-ink-300 mt-1" dir="auto">{proposal.author} · {proposal.research_area ? t(proposal.research_area) : '—'} · {formatDate(proposal.publication_date)}</p>
+            {proposal.abstract && <p className="text-xs text-ink-200 mt-2 line-clamp-2" dir="auto">{proposal.abstract}</p>}
           </div>
           <div className="glass-card rounded-xl p-3 text-center min-w-[100px]">
             <p className={`text-lg font-bold ${tierColor}`}>{formatCurrency(proposal.funding_requested)}</p>
-            <p className="text-[10px] text-ink-300 mt-0.5">Funding · {tier}</p>
+            <p className="text-[10px] text-ink-300 mt-0.5">{t('Funding')} · {t(tier)}</p>
           </div>
         </div>
         {proposal.keywords.length > 0 && (
@@ -437,46 +440,46 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <TrendingUp size={14} className="text-brand-600" /> Match Score Distribution
+            <TrendingUp size={14} className="text-brand-600" /> {t('Match Score Distribution')}
           </h4>
           <div className="flex items-center justify-center mb-3"><ScoreRing score={avgScore} size={80} /></div>
           <div className="space-y-2">
-            <ScoreBar label="High (80%+)" count={high} total={matches.length} color="bg-emerald-500" />
-            <ScoreBar label="Medium (40-79%)" count={med} total={matches.length} color="bg-amber-500/60" />
-            <ScoreBar label="Low (<40%)" count={low} total={matches.length} color="bg-rose-500/60" />
+            <ScoreBar label={t('High (80%+)')} count={high} total={matches.length} color="bg-emerald-500" />
+            <ScoreBar label={t('Medium (40-79%)')} count={med} total={matches.length} color="bg-amber-500/60" />
+            <ScoreBar label={t('Low (<40%)')} count={low} total={matches.length} color="bg-rose-500/60" />
           </div>
         </div>
 
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <Target size={14} className="text-brand-600" /> Oman Vision 2040
+            <Target size={14} className="text-brand-600" /> {t('Oman Vision 2040')}
           </h4>
           {alignedPillars.length === 0 ? (
-            <p className="text-xs text-ink-400">No direct pillar alignment detected</p>
+            <p className="text-xs text-ink-400">{t('No direct pillar alignment detected')}</p>
           ) : (
             <div className="space-y-2">
               {alignedPillars.map((p) => (
                 <div key={p} className="glass rounded-lg p-2.5 flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-brand-600 flex-shrink-0" />
-                  <span className="text-xs text-ink-200">{p}</span>
+                  <span className="text-xs text-ink-200">{t(p)}</span>
                 </div>
               ))}
             </div>
           )}
-          <p className="text-[10px] text-ink-400 mt-3">{alignedPillars.length} of {OMAN_VISION_PILLARS.length} strategic pillars aligned</p>
+          <p className="text-[10px] text-ink-400 mt-3">{t('{count} of {total} strategic pillars aligned', { count: alignedPillars.length, total: OMAN_VISION_PILLARS.length })}</p>
         </div>
 
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <BarChart3 size={14} className="text-slate-600" /> Category Summary
+            <BarChart3 size={14} className="text-slate-600" /> {t('Category Summary')}
           </h4>
           {sortedAreas.length === 0 ? (
-            <p className="text-xs text-ink-400">No matches to categorize</p>
+            <p className="text-xs text-ink-400">{t('No matches to categorize')}</p>
           ) : (
             <div className="space-y-2">
               {sortedAreas.map(([area, count]) => (
                 <div key={area} className="flex items-center justify-between">
-                  <span className="text-xs text-ink-200">{area}</span>
+                  <span className="text-xs text-ink-200">{t(area)}</span>
                   <span className="glass rounded-full px-2 py-0.5 text-[10px] font-semibold text-ink-100">{count}</span>
                 </div>
               ))}
@@ -484,7 +487,7 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
           )}
           {allKws.length > 0 && (
             <div className="mt-3 pt-3 border-t border-ink-700/20">
-              <p className="text-[10px] text-ink-300 mb-1.5">Matched Keywords ({allKws.length})</p>
+              <p className="text-[10px] text-ink-300 mb-1.5">{t('Matched Keywords ({count})', { count: allKws.length })}</p>
               <div className="flex flex-wrap gap-1">
                 {allKws.slice(0, 6).map((k) => (
                   <span key={k} className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>{k}</span>
@@ -499,7 +502,7 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
       {matchRun?.warning && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 flex items-start gap-2">
           <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
-          <span>{matchRun.warning}</span>
+          <span>{t(matchRun.warning)}</span>
         </div>
       )}
 
@@ -507,15 +510,15 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
       {matches.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs text-ink-300 font-medium flex items-center gap-1.5">
-            <BookOpen size={14} className="text-slate-600" /> Matched Publications ({matches.length})
+            <BookOpen size={14} className="text-slate-600" /> {t('Matched Publications ({count})', { count: matches.length })}
           </p>
           {matches.map((m) => (
             <div key={m.id} className="glass-card rounded-2xl p-4">
               <div className="flex items-center gap-4">
                 <ScoreRing score={m.match_score} size={52} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-ink-50 truncate">{m.publication?.title ?? '—'}</p>
-                  <p className="text-xs text-ink-300">{m.publication?.authors ?? '—'} · {m.publication?.journal ?? '—'}</p>
+                  <p className="text-sm text-ink-50 truncate" dir="auto">{m.publication?.title ?? '—'}</p>
+                  <p className="text-xs text-ink-300" dir="auto">{m.publication?.authors ?? '—'} · {m.publication?.journal ?? '—'}</p>
                 </div>
                 <div className="hidden md:flex flex-wrap gap-1 max-w-[180px] justify-end">
                   {m.matched_keywords.map((k) => (
@@ -524,9 +527,9 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
                 </div>
               </div>
               {m.rationale && (
-                <p className="mt-3 pl-[68px] text-xs text-ink-300 flex items-start gap-1.5">
+                <p className="mt-3 ps-[68px] text-xs text-ink-300 flex items-start gap-1.5">
                   <Sparkles size={12} className="text-brand mt-0.5 flex-shrink-0" />
-                  <span>{m.rationale}</span>
+                  <span dir="auto">{m.rationale}</span>
                 </p>
               )}
             </div>
@@ -536,10 +539,10 @@ function ReportStep({ proposal, matches, matchRun, onContinue, onBack }: {
 
       <div className="flex justify-between">
         <button onClick={onBack} className="glass-card rounded-xl px-4 py-2 text-sm text-ink-200 hover:text-ink-50 flex items-center gap-2">
-          <ArrowLeft size={14} /> Back
+          <ArrowLeft size={14} className="rtl:-scale-x-100" /> {t('Back')}
         </button>
         <button onClick={onContinue} className="btn-solid rounded-xl px-6 py-2.5 text-sm font-semibold flex items-center gap-2">
-          Continue to Evaluation <ArrowRight size={14} />
+          {t('Continue to Evaluation')} <ArrowRight size={14} className="rtl:-scale-x-100" />
         </button>
       </div>
     </div>
@@ -596,6 +599,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
   onBack: () => void;
   onComplete: () => void;
 }) {
+  const { t, lang, isRTL } = useI18n();
   const [aScores, setAScores] = useState<number[]>(new Array(APPENDIX_A_CRITERIA.length).fill(5));
   const [bScores, setBScores] = useState<number[]>(new Array(APPENDIX_B_CRITERIA.length).fill(5));
   const [cScores, setCScores] = useState<number[]>(new Array(APPENDIX_C_CRITERIA.length).fill(5));
@@ -629,15 +633,15 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
     setAiLoading(true);
     setAiError(null);
     try {
-      const sg = await suggestEvaluation(proposal.id);
+      const sg = await suggestEvaluation(proposal.id, lang);
       setSuggestion(sg);
       if (!touched.current) applySuggestion(sg);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'AI suggestion failed');
+      setAiError(t(err instanceof Error ? err.message : 'AI suggestion failed'));
     } finally {
       setAiLoading(false);
     }
-  }, [proposal.id]);
+  }, [proposal.id, lang, t]);
 
   useEffect(() => { requestSuggestion(); }, [requestSuggestion]);
 
@@ -659,7 +663,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
     : 0;
 
   const handleSave = async () => {
-    if (!recommendation) { setError('Please select a funding recommendation before submitting.'); return; }
+    if (!recommendation) { setError(t('Please select a funding recommendation before submitting.')); return; }
     setSaving(true);
     setError(null);
     const result = await saveEvaluation({
@@ -674,7 +678,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
       evaluator_notes: notes || null,
     });
     setSaving(false);
-    if (!result) { setError('Failed to save evaluation. Please try again.'); return; }
+    if (!result) { setError(t('Failed to save evaluation. Please try again.')); return; }
     onComplete();
   };
 
@@ -682,15 +686,15 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
     <div className="space-y-4">
       {/* Header */}
       <div className="mb-1">
-        <p className="text-[10px] text-brand font-semibold tracking-widest uppercase mb-1">Evaluation</p>
-        <h2 className="text-xl font-bold text-ink-50">Three-Theme Proposal Evaluation</h2>
-        <p className="text-xs text-ink-300 mt-1">Score each criterion on a 1–10 scale across the three official evaluation themes, then record the researcher and team judgment.</p>
+        <p className="text-[10px] text-brand font-semibold tracking-widest uppercase mb-1">{t('Evaluation')}</p>
+        <h2 className="text-xl font-bold text-ink-50">{t('Three-Theme Proposal Evaluation')}</h2>
+        <p className="text-xs text-ink-300 mt-1">{t('Score each criterion on a 1–10 scale across the three official evaluation themes, then record the researcher and team judgment.')}</p>
       </div>
 
       {/* Proposal reference */}
       <div className="glass rounded-xl px-4 py-2.5 flex items-center gap-2">
-        <span className="text-[10px] text-ink-400 uppercase tracking-wider font-medium">Proposal</span>
-        <span className="text-xs text-ink-200 truncate">{proposal.title}</span>
+        <span className="text-[10px] text-ink-400 uppercase tracking-wider font-medium">{t('Proposal')}</span>
+        <span className="text-xs text-ink-200 truncate" dir="auto">{proposal.title}</span>
       </div>
 
       {/* AI suggestion */}
@@ -700,40 +704,40 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
             {aiLoading ? <Loader2 size={16} className="text-brand animate-spin" /> : <Sparkles size={16} className="text-brand" />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-ink-50">AI suggested scores</p>
+            <p className="text-sm font-semibold text-ink-50">{t('AI suggested scores')}</p>
             {aiLoading && (
-              <p className="text-xs text-ink-300 mt-0.5">AI is reading the full proposal and scoring each criterion. This takes about 30–90 seconds.</p>
+              <p className="text-xs text-ink-300 mt-0.5">{t('AI is reading the full proposal and scoring each criterion. This takes about 30–90 seconds.')}</p>
             )}
             {aiError && (
               <div className="mt-1 text-xs text-ink-200">
                 <p className="text-brand-700">{aiError}</p>
-                <button onClick={requestSuggestion} className="mt-2 btn-liquid rounded-lg px-3 py-1 text-xs font-medium">Try again</button>
+                <button onClick={requestSuggestion} className="mt-2 btn-liquid rounded-lg px-3 py-1 text-xs font-medium">{t('Try again')}</button>
               </div>
             )}
             {suggestion && !aiLoading && (
               <div className="mt-1 space-y-2">
-                <p className="text-xs text-ink-200 leading-relaxed">{suggestion.summary}</p>
+                <p className="text-xs text-ink-200 leading-relaxed" dir="auto">{suggestion.summary}</p>
                 <div className="grid md:grid-cols-2 gap-3">
                   {suggestion.strengths.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">Strengths</p>
-                      <ul className="space-y-1">{suggestion.strengths.map((t) => <li key={t} className="text-xs text-ink-200 flex gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">{t('Strengths')}</p>
+                      <ul className="space-y-1">{suggestion.strengths.map((t) => <li key={t} dir="auto" className="text-xs text-ink-200 flex gap-1.5"><CheckCircle2 size={12} className="text-emerald-600 mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
                     </div>
                   )}
                   {suggestion.weaknesses.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-700 mb-1">Weaknesses</p>
-                      <ul className="space-y-1">{suggestion.weaknesses.map((t) => <li key={t} className="text-xs text-ink-200 flex gap-1.5"><AlertCircle size={12} className="text-brand mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-700 mb-1">{t('Weaknesses')}</p>
+                      <ul className="space-y-1">{suggestion.weaknesses.map((t) => <li key={t} dir="auto" className="text-xs text-ink-200 flex gap-1.5"><AlertCircle size={12} className="text-brand mt-0.5 flex-shrink-0" />{t}</li>)}</ul>
                     </div>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <span className="text-xs text-ink-300">
-                    AI recommendation: <span className="font-semibold text-ink-100">{suggestion.recommendation === 'recommend' ? 'Recommend' : suggestion.recommendation === 'do_not_fund' ? 'Do not fund' : '—'}</span>
+                    {t('AI recommendation:')} <span className="font-semibold text-ink-100">{suggestion.recommendation === 'recommend' ? t('Recommend') : suggestion.recommendation === 'do_not_fund' ? t('Do not fund') : '—'}</span>
                   </span>
-                  <button onClick={() => applySuggestion(suggestion)} className="btn-liquid rounded-lg px-3 py-1 text-xs font-medium">Apply suggested scores</button>
+                  <button onClick={() => applySuggestion(suggestion)} className="btn-liquid rounded-lg px-3 py-1 text-xs font-medium">{t('Apply suggested scores')}</button>
                 </div>
-                <p className="text-[10px] text-ink-400">These are suggestions only. Adjust any score before you submit; the final evaluation is yours.</p>
+                <p className="text-[10px] text-ink-400">{t('These are suggestions only. Adjust any score before you submit; the final evaluation is yours.')}</p>
               </div>
             )}
           </div>
@@ -742,12 +746,12 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
 
       {/* Scoring scale legend */}
       <div className="glass-card rounded-2xl p-4">
-        <p className="text-[10px] text-ink-300 font-semibold uppercase tracking-wider mb-3">Scoring scale (applies to every criterion)</p>
+        <p className="text-[10px] text-ink-300 font-semibold uppercase tracking-wider mb-3">{t('Scoring scale (applies to every criterion)')}</p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {SCORE_SCALE.map((s) => (
             <div key={s.range} className="glass rounded-xl p-2.5">
-              <p className="text-sm font-bold text-ink-50 mb-1">{s.range}</p>
-              <p className="text-[10px] text-ink-300 leading-tight">{s.label}</p>
+              <p className="text-sm font-bold text-ink-50 mb-1" dir="ltr">{s.range}</p>
+              <p className="text-[10px] text-ink-300 leading-tight">{t(s.label)}</p>
             </div>
           ))}
         </div>
@@ -770,21 +774,21 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           </div>
           <div>
             <p className="text-xl font-bold text-ink-50">{overallPct}%</p>
-            <p className="text-[10px] text-ink-300 uppercase tracking-wider">Overall Score</p>
+            <p className="text-[10px] text-ink-300 uppercase tracking-wider">{t('Overall Score')}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-4">
-          <OverviewBand label="Initial Proposal Evaluation" score={aTotal} max={aMax} color="text-brand-600" />
-          <OverviewBand label="Institutional Challenge Linkage & Impact" score={bTotal} max={bMax} color="text-slate-600" />
-          <OverviewBand label="Research Excellence" score={cTotal} max={cMax} color="text-amber-600" />
+          <OverviewBand label={t('Initial Proposal Evaluation')} score={aTotal} max={aMax} color="text-brand-600" />
+          <OverviewBand label={t('Institutional Challenge Linkage & Impact')} score={bTotal} max={bMax} color="text-slate-600" />
+          <OverviewBand label={t('Research Excellence')} score={cTotal} max={cMax} color="text-amber-600" />
         </div>
       </div>
 
       {/* Appendix A */}
       <CriteriaSection
         appendix="A"
-        title="Initial Proposal Evaluation"
-        subtitle="التقييم المبدئي للمقترح البحثي"
+        title={t('Initial Proposal Evaluation')}
+        subtitle={isRTL ? 'Initial Proposal Evaluation' : 'التقييم المبدئي للمقترح البحثي'}
         criteria={APPENDIX_A_CRITERIA}
         scores={aScores}
         onChange={byHand(setAScores)}
@@ -795,8 +799,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
       {/* Appendix B */}
       <CriteriaSection
         appendix="B"
-        title="Institutional Challenge Linkage & Impact"
-        subtitle="الربط بتحديات المؤسسة والأثر"
+        title={t('Institutional Challenge Linkage & Impact')}
+        subtitle={isRTL ? 'Institutional Challenge Linkage & Impact' : 'الربط بتحديات المؤسسة والأثر'}
         criteria={APPENDIX_B_CRITERIA}
         scores={bScores}
         onChange={byHand(setBScores)}
@@ -807,8 +811,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
       {/* Appendix C */}
       <CriteriaSection
         appendix="C"
-        title="Research Excellence"
-        subtitle="التميز البحثي"
+        title={t('Research Excellence')}
+        subtitle={isRTL ? 'Research Excellence' : 'التميز البحثي'}
         criteria={APPENDIX_C_CRITERIA}
         scores={cScores}
         onChange={byHand(setCScores)}
@@ -819,7 +823,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
       {/* Researcher & Team Judgment */}
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <h4 className="text-sm font-semibold text-ink-100 flex items-center gap-2">
-          <Users size={16} className="text-brand-600" /> Researcher & Team Judgment
+          <Users size={16} className="text-brand-600" /> {t('Researcher & Team Judgment')}
         </h4>
 
         {/* Publication track record + team size */}
@@ -827,21 +831,21 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           <div className="glass rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen size={14} className="text-brand-600" />
-              <span className="text-xs font-semibold text-ink-200">Publication track record</span>
+              <span className="text-xs font-semibold text-ink-200">{t('Publication track record')}</span>
             </div>
             <p className="text-xl font-bold text-ink-50 mb-0.5">
-              {matches.length} matches · {avgMatchScore}%
+              {t('{count} matches · {score}%', { count: matches.length, score: avgMatchScore })}
             </p>
             <p className="text-[10px] text-ink-300 leading-snug">
               {matches.length > 0
-                ? `Based on ${matches.length} matched publication${matches.length !== 1 ? 's' : ''}. Principal investigator: ${proposal.author}.`
-                : 'No matched publications found for this proposal.'}
+                ? t(matches.length === 1 ? 'Based on {count} matched publication. Principal investigator: {pi}.' : 'Based on {count} matched publications. Principal investigator: {pi}.', { count: matches.length, pi: proposal.author })
+                : t('No matched publications found for this proposal.')}
             </p>
           </div>
           <div className="glass rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users size={14} className="text-slate-600" />
-              <span className="text-xs font-semibold text-ink-200">Topic & team size</span>
+              <span className="text-xs font-semibold text-ink-200">{t('Topic & team size')}</span>
             </div>
             <div className="flex items-center gap-2 mb-2">
               <input
@@ -849,21 +853,21 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
                 onChange={(e) => byHand(setTeamSize)(Math.max(1, parseInt(e.target.value) || 1))}
                 className="glass-input rounded-lg px-2 py-1 text-lg font-bold text-ink-50 w-20 text-center"
               />
-              <span className="text-sm text-ink-300">researchers</span>
+              <span className="text-sm text-ink-300">{t('researchers')}</span>
             </div>
-            <p className="text-[10px] text-ink-300">{proposal.research_area ?? 'No area specified'}</p>
+            <p className="text-[10px] text-ink-300">{proposal.research_area ? t(proposal.research_area) : t('No area specified')}</p>
           </div>
         </div>
 
         {/* Sliders */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <JudgmentSlider label="Team scientific capacity" value={scientificCapacity} onChange={byHand(setScientificCapacity)} />
-          <JudgmentSlider label="Principal investigator leadership" value={leadership} onChange={byHand(setLeadership)} />
+          <JudgmentSlider label={t('Team scientific capacity')} value={scientificCapacity} onChange={byHand(setScientificCapacity)} />
+          <JudgmentSlider label={t('Principal investigator leadership')} value={leadership} onChange={byHand(setLeadership)} />
         </div>
 
         {/* Recommendation */}
         <div>
-          <p className="text-xs text-ink-300 mb-2">General funding recommendation</p>
+          <p className="text-xs text-ink-300 mb-2">{t('General funding recommendation')}</p>
           <div className="flex gap-2">
             <button
               onClick={() => byHand(setRecommendation)('recommend')}
@@ -873,7 +877,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
                   : 'glass text-ink-200 hover:text-ink-50'
               }`}
             >
-              <CheckCircle2 size={15} /> Recommend (Yes)
+              <CheckCircle2 size={15} /> {t('Recommend (Yes)')}
             </button>
             <button
               onClick={() => byHand(setRecommendation)('do_not_fund')}
@@ -883,29 +887,33 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
                   : 'glass text-ink-200 hover:text-ink-50'
               }`}
             >
-              <XCircle size={15} /> Do not fund (No)
+              <XCircle size={15} /> {t('Do not fund (No)')}
             </button>
           </div>
         </div>
 
         {/* Notes */}
         <div>
-          <p className="text-xs text-ink-300 mb-2">Evaluator notes</p>
+          <p className="text-xs text-ink-300 mb-2">{t('Evaluator notes')}</p>
           <textarea
+            dir="auto"
             value={notes}
             onChange={(e) => byHand(setNotes)(e.target.value)}
             rows={3}
             className="glass-input rounded-xl px-3 py-2 text-sm w-full resize-none"
-            placeholder="Recommendations, conditions, and other remarks..."
+            placeholder={t('Recommendations, conditions, and other remarks...')}
           />
         </div>
 
         {/* Summary */}
         <div className="border-t border-ink-700/20 pt-3">
           <p className="text-xs text-ink-300">
-            <span className="font-medium text-ink-200">Summary:</span>{' '}
-            Overall criteria score {overallPct}%, publication match {avgMatchScore}%,{' '}
-            funding decision {recommendation === 'recommend' ? 'recommended' : recommendation === 'do_not_fund' ? 'not recommended' : 'pending'}.
+            <span className="font-medium text-ink-200">{t('Summary:')}</span>{' '}
+            {t('Overall criteria score {overall}%, publication match {match}%, funding decision {decision}.', {
+              overall: overallPct,
+              match: avgMatchScore,
+              decision: recommendation === 'recommend' ? t('recommended') : recommendation === 'do_not_fund' ? t('not recommended') : t('pending'),
+            })}
           </p>
         </div>
       </div>
@@ -919,11 +927,11 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
 
       <div className="flex justify-between">
         <button onClick={onBack} className="glass-card rounded-xl px-4 py-2 text-sm text-ink-200 hover:text-ink-50 flex items-center gap-2">
-          <ArrowLeft size={14} /> Back to Report
+          <ArrowLeft size={14} className="rtl:-scale-x-100" /> {t('Back to Report')}
         </button>
         <button onClick={handleSave} disabled={saving} className="btn-solid rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-          {saving ? 'Saving...' : 'Submit Evaluation'}
+          {saving ? t('Saving...') : t('Submit Evaluation')}
         </button>
       </div>
     </div>
@@ -940,6 +948,7 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
   accentColor: 'brand' | 'slate' | 'amber';
   suggestions?: CriterionSuggestion[];
 }) {
+  const { t } = useI18n();
   const colorMap = { brand: 'text-brand-600', slate: 'text-slate-600', amber: 'text-amber-600' };
   const dotColorMap = { brand: 'bg-brand-500', slate: 'bg-slate-500', amber: 'bg-amber-500' };
   const ringColorMap = { brand: 'bg-brand-500/20 text-brand-700 ring-brand-400/30', slate: 'bg-slate-500/20 text-slate-700 ring-slate-400/30', amber: 'bg-amber-500/20 text-amber-700 ring-amber-400/30' };
@@ -948,7 +957,7 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
     <div className="glass-card rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="px-5 pt-4 pb-3 border-b border-ink-700/20">
-        <p className={`text-[10px] font-bold uppercase tracking-widest ${colorMap[accentColor]} mb-0.5`}>Appendix {appendix}</p>
+        <p className={`text-[10px] font-bold uppercase tracking-widest ${colorMap[accentColor]} mb-0.5`}>{t('Appendix {letter}', { letter: appendix })}</p>
         <h4 className="text-sm font-bold text-ink-50">{title}</h4>
         <p className="text-[10px] text-ink-400 mt-0.5">{subtitle}</p>
       </div>
@@ -962,12 +971,12 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
             <div key={item} className="flex items-center gap-3 py-2.5 group">
               <span className="text-[11px] text-ink-400 w-4 flex-shrink-0 font-medium">{i + 1}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-ink-200 leading-snug">{item}</p>
+                <p className="text-xs text-ink-200 leading-snug">{t(item)}</p>
                 {suggestions?.[i] && (
                   <p className="mt-1 text-[11px] text-ink-400 leading-snug flex items-start gap-1">
                     <Sparkles size={10} className="text-brand mt-0.5 flex-shrink-0" />
                     <span>
-                      <span className="font-semibold text-ink-300">AI {suggestions[i].score}/10:</span> {suggestions[i].reason}
+                      <span className="font-semibold text-ink-300">{t('AI {score}/10:', { score: suggestions[i].score })}</span> {suggestions[i].reason}
                     </span>
                   </p>
                 )}
@@ -977,7 +986,7 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
                 <div className="w-full h-0.5 bg-ink-600/40 rounded-full" />
                 <div
                   className={`absolute w-3 h-3 rounded-full ${dotColorMap[accentColor]} ring-2 ring-white/10 shadow-md transition-all`}
-                  style={{ left: `calc(${pct}% - 6px)` }}
+                  style={{ insetInlineStart: `calc(${pct}% - 6px)` }}
                 />
                 <input
                   type="range" min={1} max={10} step={1} value={score}
@@ -1003,13 +1012,13 @@ function JudgmentSlider({ label, value, onChange }: { label: string; value: numb
     <div className="glass rounded-xl p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-ink-200">{label}</span>
-        <span className="text-sm font-bold text-ink-50">{value}/10</span>
+        <span className="text-sm font-bold text-ink-50" dir="ltr">{value}/10</span>
       </div>
       <div className="relative flex items-center">
         <div className="w-full h-1 bg-ink-600/40 rounded-full" />
         <div
           className="absolute w-3 h-3 rounded-full bg-brand-500 ring-2 ring-white/10 shadow-md"
-          style={{ left: `calc(${pct}% - 6px)` }}
+          style={{ insetInlineStart: `calc(${pct}% - 6px)` }}
         />
         <input
           type="range" min={1} max={10} step={1} value={value}
@@ -1024,7 +1033,7 @@ function JudgmentSlider({ label, value, onChange }: { label: string; value: numb
 function OverviewBand({ label, score, max, color }: { label: string; score: number; max: number; color: string }) {
   return (
     <div className="text-center">
-      <p className={`text-2xl font-bold ${color}`}>{score}<span className="text-sm text-ink-300">/{max}</span></p>
+      <p className={`text-2xl font-bold ${color}`} dir="ltr">{score}<span className="text-sm text-ink-300">/{max}</span></p>
       <p className="text-[9px] text-ink-400 uppercase tracking-wider leading-tight max-w-[110px]">{label}</p>
     </div>
   );

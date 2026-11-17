@@ -121,7 +121,7 @@ class MatchViewSet(
         return super().get_throttles()
 
     @staticmethod
-    def _match(proposals) -> tuple[int, str, str | None]:
+    def _match(proposals, language: str = 'en') -> tuple[int, str, str | None]:
         """Match proposals with Claude when available, otherwise by keyword overlap.
 
         Returns (number of matches, method used, warning to show or None).
@@ -130,7 +130,7 @@ class MatchViewSet(
         if ai.is_enabled():
             try:
                 publications = list(Publication.objects.all())
-                count = sum(save_ai_matches(p, ai.match_publications(p, publications)) for p in proposals)
+                count = sum(save_ai_matches(p, ai.match_publications(p, publications, language)) for p in proposals)
                 return count, 'ai', None
             except ai.AIError as e:
                 return generate_matches(proposals), 'keyword', f'AI matching failed ({e}) - used keyword matching instead.'
@@ -144,16 +144,17 @@ class MatchViewSet(
         Without: match every proposal the user can see and return {"count": n, "method": ..., "warning": ...}.
         """
         proposal_id = request.data.get('proposal_id')
+        language = _language(request)
         if proposal_id:
             proposal = get_object_or_404(proposals_for(request.user), pk=proposal_id)
-            _, method, warning = self._match([proposal])
+            _, method, warning = self._match([proposal], language)
             matches = self.get_queryset().filter(proposal=proposal)
             response = Response(self.get_serializer(matches, many=True).data)
             response['X-Match-Method'] = method
             if warning:
                 response['X-Match-Warning'] = warning
             return response
-        count, method, warning = self._match(proposals_for(request.user))
+        count, method, warning = self._match(proposals_for(request.user), language)
         return Response({'count': count, 'method': method, 'warning': warning})
 
 
@@ -182,6 +183,11 @@ class EvaluationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets
 
 
 # ── AI analysis ──────────────────────────────────────────────────────────────
+
+def _language(request) -> str:
+    """Language for AI-written text: 'ar' or 'en' (default)."""
+    return 'ar' if request.data.get('language') == 'ar' else 'en'
+
 
 class AIThrottle(ScopedRateThrottle):
     scope = 'ai'
@@ -220,6 +226,6 @@ def ai_evaluate(request):
     proposal = get_object_or_404(proposals_for(request.user), pk=request.data.get('proposal_id'))
     matches = Match.objects.filter(proposal=proposal).select_related('publication').order_by('-match_score')[:10]
     try:
-        return Response(ai.suggest_evaluation(proposal, matches))
+        return Response(ai.suggest_evaluation(proposal, matches, _language(request)))
     except ai.AIError as e:
         return _ai_error(e)

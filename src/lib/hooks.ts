@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiRequest, apiRequestWithHeaders } from '@/lib/api';
+import type { Lang } from '@/lib/i18n';
 import type {
   Proposal, Publication, MatchWithRelations, Match, Evaluation, ExtractedDocument, EvaluationSuggestion, MatchRun,
 } from '@/lib/types';
@@ -126,18 +127,18 @@ export async function saveEvaluation(input: Omit<Evaluation, 'id' | 'user_id' | 
  * Runs matching on the server for every proposal (Claude when AI is enabled, keyword overlap otherwise).
  * Throws ApiError with a readable message on failure.
  */
-export async function generateMatches(): Promise<{ count: number } & MatchRun> {
-  const result = await apiRequest<{ count: number } & MatchRun>('/matches/generate/', { method: 'POST', body: {} });
+export async function generateMatches(language: Lang = 'en'): Promise<{ count: number } & MatchRun> {
+  const result = await apiRequest<{ count: number } & MatchRun>('/matches/generate/', { method: 'POST', body: { language } });
   notifyChanged('matches');
   return result;
 }
 
 /** Runs matching for one proposal and returns its matches, best first. */
-export async function generateMatchesForProposal(proposalId: string): Promise<{ matches: MatchWithRelations[] } & MatchRun> {
+export async function generateMatchesForProposal(proposalId: string, language: Lang = 'en'): Promise<{ matches: MatchWithRelations[] } & MatchRun> {
   try {
     const { data, headers } = await apiRequestWithHeaders<MatchWithRelations[]>('/matches/generate/', {
       method: 'POST',
-      body: { proposal_id: proposalId },
+      body: { proposal_id: proposalId, language },
     });
     notifyChanged('matches');
     return {
@@ -158,6 +159,6 @@ export async function extractDocument(file: File): Promise<ExtractedDocument> {
 }
 
 /** Claude suggests scores for every evaluation criterion. Throws ApiError on failure. */
-export async function suggestEvaluation(proposalId: string): Promise<EvaluationSuggestion> {
-  return apiRequest<EvaluationSuggestion>('/ai/evaluate/', { method: 'POST', body: { proposal_id: proposalId } });
+export async function suggestEvaluation(proposalId: string, language: Lang = 'en'): Promise<EvaluationSuggestion> {
+  return apiRequest<EvaluationSuggestion>('/ai/evaluate/', { method: 'POST', body: { proposal_id: proposalId, language } });
 }
