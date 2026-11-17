@@ -48,7 +48,7 @@ export function Matching() {
       {/* Toolbar */}
       <div className="glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-teal-glow" />
+          <Sparkles size={18} className="text-brand" />
           <div>
             <p className="text-sm font-medium text-ink-50">Auto-Matching Engine</p>
             <p className="text-[11px] text-ink-300">Matches proposals to publications by keyword overlap</p>
@@ -81,7 +81,7 @@ export function Matching() {
           <p className="text-[10px] text-ink-300">Total Matches</p>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-teal-600">{matches.filter((m) => m.match_score >= 80).length}</p>
+          <p className="text-xl font-bold text-emerald-600">{matches.filter((m) => m.match_score >= 80).length}</p>
           <p className="text-[10px] text-ink-300">High Confidence</p>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
@@ -89,7 +89,7 @@ export function Matching() {
           <p className="text-[10px] text-ink-300">Pending Review</p>
         </div>
         <div className="glass-card rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-cyan-600">{matches.filter((m) => m.status === 'accepted').length}</p>
+          <p className="text-xl font-bold text-emerald-600">{matches.filter((m) => m.status === 'accepted').length}</p>
           <p className="text-[10px] text-ink-300">Accepted</p>
         </div>
       </div>
@@ -114,7 +114,7 @@ export function Matching() {
                 {/* Proposal side */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <FileText size={12} className="text-teal-600" />
+                    <FileText size={12} className="text-brand-600" />
                     <span className="text-[10px] text-ink-300 uppercase tracking-wider">Proposal</span>
                   </div>
                   <p className="text-sm text-ink-50 truncate">{m.proposal?.title ?? '—'}</p>
@@ -126,7 +126,7 @@ export function Matching() {
                 {/* Publication side */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <BookOpen size={12} className="text-cyan-600" />
+                    <BookOpen size={12} className="text-slate-600" />
                     <span className="text-[10px] text-ink-300 uppercase tracking-wider">Publication</span>
                   </div>
                   <p className="text-sm text-ink-50 truncate">{m.publication?.title ?? '—'}</p>
@@ -144,7 +144,7 @@ export function Matching() {
 
                 <div className="flex flex-col gap-1.5">
                   <span className={`badge badge-${m.status}`}>{statusLabel(m.status)}</span>
-                  <button onClick={() => setSelectedMatch(m.id)} className="glass rounded-lg p-1.5 hover:bg-white/20 transition-colors">
+                  <button onClick={() => setSelectedMatch(m.id)} className="glass rounded-lg p-1.5 hover:bg-slate-50 transition-colors">
                     <Eye size={14} className="text-ink-200" />
                   </button>
                 </div>
@@ -170,7 +170,7 @@ export function Matching() {
 
       {/* Detail drawer */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setSelectedMatch(null)} />
           <div className="glass-strong relative z-10 w-full max-w-3xl rounded-3xl p-6 slide-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
@@ -184,7 +184,7 @@ export function Matching() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="glass rounded-2xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText size={14} className="text-teal-600" />
+                    <FileText size={14} className="text-brand-600" />
                     <span className="text-[10px] text-ink-300 uppercase tracking-wider">Proposal</span>
                   </div>
                   <p className="text-sm font-medium text-ink-50">{selected.proposal?.title}</p>
@@ -196,7 +196,7 @@ export function Matching() {
                 </div>
                 <div className="glass rounded-2xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <BookOpen size={14} className="text-cyan-600" />
+                    <BookOpen size={14} className="text-slate-600" />
                     <span className="text-[10px] text-ink-300 uppercase tracking-wider">Publication</span>
                   </div>
                   <p className="text-sm font-medium text-ink-50">{selected.publication?.title}</p>
@@ -211,7 +211,7 @@ export function Matching() {
                 <p className="text-xs text-ink-300 mb-2">Matched Keywords</p>
                 <div className="flex flex-wrap gap-2">
                   {selected.matched_keywords.map((k) => (
-                    <span key={k} className="chip" style={{ background: 'rgba(13,148,136,0.1)', borderColor: 'rgba(13,148,136,0.2)', color: '#0d9488' }}>{k}</span>
+                    <span key={k} className="chip" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>{k}</span>
                   ))}
                 </div>
               </div>
@@ -220,7 +220,7 @@ export function Matching() {
                   <button
                     key={s}
                     onClick={() => { handleStatusChange(selected.id, s); setSelectedMatch(null); }}
-                    className={`badge badge-${s} ${selected.status === s ? 'ring-2 ring-teal-glow/30' : 'opacity-60 hover:opacity-100'} cursor-pointer transition-opacity`}
+                    className={`badge badge-${s} ${selected.status === s ? 'ring-2 ring-brand/30' : 'opacity-60 hover:opacity-100'} cursor-pointer transition-opacity`}
                   >
                     {statusLabel(s)}
                   </button>

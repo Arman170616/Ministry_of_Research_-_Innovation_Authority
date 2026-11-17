@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, onOpenMobile }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-20 glass border-b border-white/40 px-4 md:px-8 py-4">
+    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 px-4 md:px-8 py-4">
       <div className="flex items-center gap-4">
         <button onClick={onOpenMobile} className="md:hidden text-ink-200 hover:text-ink-50">
           <Menu size={22} />
@@ -25,9 +25,9 @@ export function Header({ title, subtitle, onOpenMobile }: HeaderProps) {
             className="bg-transparent border-0 outline-none text-sm text-ink-50 placeholder:text-ink-400 flex-1"
           />
         </div>
-        <button className="relative glass-card rounded-xl p-2.5 hover:bg-white/30 transition-colors">
+        <button className="relative glass-card rounded-xl p-2.5 hover:bg-slate-50 transition-colors">
           <Bell size={18} className="text-ink-200" />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-glow animate-pulse" />
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand" />
         </button>
       </div>
     </header>

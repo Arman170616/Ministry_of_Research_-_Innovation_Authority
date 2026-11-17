@@ -50,9 +50,9 @@ export function Publications() {
           />
           {search && <button onClick={() => setSearch('')} className="text-ink-300 hover:text-ink-50"><X size={14} /></button>}
         </div>
-        <button onClick={() => setShowFilters(!showFilters)} className={`btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 ${showFilters ? 'ring-1 ring-teal-400/40' : ''}`}>
+        <button onClick={() => setShowFilters(!showFilters)} className={`btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 ${showFilters ? 'ring-1 ring-brand-400/40' : ''}`}>
           <Filter size={16} /> Filters
-          {activeFilters > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-teal-glow text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
+          {activeFilters > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
         </button>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'date' | 'citations' | 'title')} className="glass-input glass-select rounded-xl px-3 py-2 text-sm">
           <option value="date">Sort: Date</option>
@@ -85,7 +85,7 @@ export function Publications() {
             </div>
           </div>
           {activeFilters > 0 && (
-            <button onClick={() => { setAreaFilter('all'); setDateFrom(''); setDateTo(''); }} className="mt-3 text-xs text-teal-glow hover:text-teal-700 flex items-center gap-1">
+            <button onClick={() => { setAreaFilter('all'); setDateFrom(''); setDateTo(''); }} className="mt-3 text-xs text-brand hover:text-brand-700 flex items-center gap-1">
               <X size={12} /> Clear all filters
             </button>
           )}
@@ -107,19 +107,19 @@ export function Publications() {
             <button key={p.id} onClick={() => setSelected(p)} className="glass-card rounded-2xl p-5 text-left group">
               <div className="flex items-start justify-between mb-3">
                 <div className="glass rounded-lg p-2">
-                  <BookOpen size={16} className="text-cyan-600" />
+                  <BookOpen size={16} className="text-slate-600" />
                 </div>
                 <div className="flex items-center gap-1 text-xs text-amber-600">
                   <Quote size={12} /> {p.citation_count}
                 </div>
               </div>
-              <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-teal-glow transition-colors">{p.title}</h3>
+              <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-brand transition-colors">{p.title}</h3>
               <p className="text-xs text-ink-300 mb-2">{p.authors}</p>
               {p.journal && <p className="text-xs text-ink-400 italic mb-2 truncate">{p.journal}</p>}
               {p.research_area && <span className="chip mb-2">{p.research_area}</span>}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-700/20">
                 <span className="text-xs text-ink-300 flex items-center gap-1"><Calendar size={12} /> {formatDate(p.publication_date)}</span>
-                {p.doi && <span className="text-[10px] text-cyan-600/70 font-mono">{p.doi}</span>}
+                {p.doi && <span className="text-[10px] text-slate-600/70 font-mono">{p.doi}</span>}
               </div>
               {p.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-3">
@@ -149,7 +149,7 @@ export function Publications() {
             {selected.doi && (
               <div className="glass rounded-xl p-3 flex items-center justify-between">
                 <span className="text-xs text-ink-300">DOI</span>
-                <span className="text-xs text-cyan-600 font-mono">{selected.doi}</span>
+                <span className="text-xs text-slate-600 font-mono">{selected.doi}</span>
               </div>
             )}
             {selected.abstract && (

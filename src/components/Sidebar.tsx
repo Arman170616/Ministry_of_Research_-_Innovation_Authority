@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, BookOpen, GitCompare, FlaskConical, X, LogOut, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, BookOpen, GitCompare, X, LogOut, type LucideIcon } from 'lucide-react';
 
 export type View = 'dashboard' | 'proposals' | 'publications' | 'matching';
 
@@ -22,23 +22,20 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
   return (
     <>
       {/* Mobile overlay */}
-      {mobileOpen && <div className="fixed inset-0 bg-black/20 z-30 md:hidden" onClick={onCloseMobile} />}
+      {mobileOpen && <div className="fixed inset-0 bg-slate-900/30 z-30 md:hidden" onClick={onCloseMobile} />}
 
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-64 z-40 md:z-0 flex flex-col glass border-r border-white/40 transition-transform duration-300 ${
+        className={`fixed md:sticky top-0 left-0 h-screen w-64 z-40 md:z-0 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
+        <div className="h-1 bg-brand flex-shrink-0" />
+
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-ink-700/15">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
-            <FlaskConical size={20} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-ink-50 leading-tight">Research & Innovation Authority</h1>
-            <p className="text-[11px] text-ink-300">Ministry of Oman</p>
-          </div>
-          <button onClick={onCloseMobile} className="ml-auto md:hidden text-ink-200">
+        <div className="relative px-5 pt-6 pb-5 border-b border-slate-200">
+          <img src="/images/ria-logo.png" alt="Research and Innovation Authority" className="h-11 w-auto" />
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">Research Portal</p>
+          <button onClick={onCloseMobile} className="absolute right-3 top-5 md:hidden text-ink-300 hover:text-ink-50" aria-label="Close menu">
             <X size={20} />
           </button>
         </div>
@@ -55,15 +52,16 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
                   onNavigate(item.id);
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                aria-current={active ? 'page' : undefined}
+                className={`relative w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   active
-                    ? 'glass-strong text-teal-glow border-teal-400/30'
-                    : 'text-ink-200 hover:text-ink-50 hover:bg-white/30'
+                    ? 'bg-brand-50 text-brand'
+                    : 'text-ink-300 hover:text-ink-50 hover:bg-slate-100'
                 }`}
               >
-                <Icon size={18} className={active ? 'text-teal-glow' : 'text-ink-300'} />
+                {active && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-brand" />}
+                <Icon size={18} className={active ? 'text-brand' : 'text-ink-400'} />
                 {item.label}
-                {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-glow animate-pulse" />}
               </button>
             );
           })}
@@ -72,15 +70,15 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
         {/* Footer */}
         <div className="px-6 py-4 border-t border-ink-700/15 space-y-3">
           <div className="glass-card rounded-xl p-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
               {userEmail.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-ink-100 font-medium truncate">{userEmail}</p>
               <p className="text-[10px] text-ink-400">Signed in</p>
             </div>
-            <button onClick={onSignOut} className="glass rounded-lg p-1.5 hover:bg-white/30 transition-colors" title="Sign out">
-              <LogOut size={14} className="text-ink-200" />
+            <button onClick={onSignOut} className="rounded-lg p-1.5 text-ink-400 hover:text-brand hover:bg-brand-50 transition-colors" title="Sign out" aria-label="Sign out">
+              <LogOut size={15} />
             </button>
           </div>
           <div className="glass-card rounded-xl p-3">

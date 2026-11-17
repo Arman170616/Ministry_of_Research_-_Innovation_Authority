@@ -140,13 +140,13 @@ export function ProposalWizard({ open, onClose, onComplete }: {
   const stepIndex = STEPS.findIndex((s) => s.key === step);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={handleClose} />
       <div className="glass-strong relative z-10 w-full max-w-5xl rounded-3xl p-6 slide-up max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center">
               <FileText size={20} className="text-white" />
             </div>
             <div>
@@ -166,12 +166,12 @@ export function ProposalWizard({ open, onClose, onComplete }: {
             return (
               <div key={s.key} className="flex items-center gap-1 flex-shrink-0">
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  active ? 'glass-strong text-teal-glow ring-1 ring-teal-400/30' :
-                  done ? 'text-teal-600' : 'text-ink-400'
+                  active ? 'glass-strong text-brand ring-1 ring-brand-400/30' :
+                  done ? 'text-emerald-600' : 'text-ink-400'
                 }`}>
                   <Icon size={14} className={active && s.key === 'extracting' ? 'animate-spin' : ''} />
                   <span>{s.label}</span>
-                  {done && <Check size={12} className="text-teal-600" />}
+                  {done && <Check size={12} className="text-emerald-600" />}
                 </div>
                 {i < STEPS.length - 1 && <ChevronRight size={14} className="text-ink-400 flex-shrink-0" />}
               </div>
@@ -195,7 +195,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={`glass-card rounded-2xl p-10 text-center cursor-pointer transition-all border-2 border-dashed ${
-                dragOver ? 'border-teal-400/50 bg-teal-500/5' : 'border-ink-700/30 hover:border-teal-400/30'
+                dragOver ? 'border-brand-400/50 bg-brand-500/5' : 'border-ink-700/30 hover:border-brand-400/30'
               }`}
             >
               <input
@@ -206,7 +206,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
               />
               <div className="w-16 h-16 rounded-2xl glass mx-auto mb-4 flex items-center justify-center">
-                <Upload size={28} className="text-teal-glow" />
+                <Upload size={28} className="text-brand" />
               </div>
               <p className="text-sm text-ink-100 font-medium mb-1">Drop your proposal document here</p>
               <p className="text-xs text-ink-300">or click to browse — PDF, DOCX, or TXT</p>
@@ -215,7 +215,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
             {fileName && (
               <div className="glass rounded-xl p-4 flex items-center gap-3">
                 <div className="glass rounded-lg p-2">
-                  <FileCheck2 size={18} className="text-teal-600" />
+                  <FileCheck2 size={18} className="text-brand-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-ink-100 truncate">{fileName}</p>
@@ -244,10 +244,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
         {step === 'extracting' && (
           <div className="py-16 text-center">
             <div className="relative w-24 h-24 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-teal-500/20" />
-              <div className="absolute inset-0 rounded-full border-4 border-teal-500 border-t-transparent animate-spin" />
+              <div className="absolute inset-0 rounded-full border-4 border-brand-500/20" />
+              <div className="absolute inset-0 rounded-full border-4 border-brand-500 border-t-transparent animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <FileText size={32} className="text-teal-glow" />
+                <FileText size={32} className="text-brand" />
               </div>
             </div>
             <h3 className="text-base font-semibold text-ink-50 mb-2">Extracting document data...</h3>
@@ -255,7 +255,7 @@ export function ProposalWizard({ open, onClose, onComplete }: {
             <div className="max-w-xs mx-auto space-y-2 text-left">
               {['Reading document structure', 'Identifying title & authors', 'Extracting abstract', 'Detecting research keywords'].map((t, i) => (
                 <div key={t} className="flex items-center gap-2 text-xs text-ink-300">
-                  <Loader2 size={12} className="animate-spin text-teal-600" />
+                  <Loader2 size={12} className="animate-spin text-brand-600" />
                   <span>{t}</span>
                 </div>
               ))}
@@ -266,8 +266,8 @@ export function ProposalWizard({ open, onClose, onComplete }: {
         {/* Step 3: Review extracted data */}
         {step === 'review' && extracted && (
           <div className="space-y-4">
-            <div className="glass rounded-xl p-3 flex items-center gap-2 text-xs text-teal-700">
-              <CheckCircle2 size={14} className="text-teal-600" />
+            <div className="glass rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-700">
+              <CheckCircle2 size={14} className="text-emerald-600" />
               <span>Document retrieved successfully. Please review and edit the extracted fields before generating the report.</span>
             </div>
 
@@ -319,10 +319,10 @@ export function ProposalWizard({ open, onClose, onComplete }: {
         {step === 'matching' && (
           <div className="py-16 text-center">
             <div className="relative w-24 h-24 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-cyan-500/20" />
-              <div className="absolute inset-0 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin" />
+              <div className="absolute inset-0 rounded-full border-4 border-slate-500/20" />
+              <div className="absolute inset-0 rounded-full border-4 border-slate-500 border-t-transparent animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles size={32} className="text-teal-glow" />
+                <Sparkles size={32} className="text-brand" />
               </div>
             </div>
             <h3 className="text-base font-semibold text-ink-50 mb-2">Matching with publications...</h3>
@@ -378,7 +378,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
 
   const funding = proposal.funding_requested ?? 0;
   const tier = funding < FUNDING_TIERS.LOW ? 'Low' : funding < FUNDING_TIERS.MEDIUM ? 'Medium' : 'High';
-  const tierColor = funding < FUNDING_TIERS.LOW ? 'text-teal-600' : funding < FUNDING_TIERS.MEDIUM ? 'text-amber-600' : 'text-rose-600';
+  const tierColor = funding < FUNDING_TIERS.LOW ? 'text-emerald-600' : funding < FUNDING_TIERS.MEDIUM ? 'text-amber-600' : 'text-rose-600';
 
   return (
     <div className="space-y-5">
@@ -387,7 +387,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <FileText size={14} className="text-teal-glow" />
+              <FileText size={14} className="text-brand" />
               <span className="text-[10px] text-ink-300 uppercase tracking-wider">Uploaded Proposal</span>
             </div>
             <p className="text-sm font-semibold text-ink-50">{proposal.title}</p>
@@ -410,11 +410,11 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <TrendingUp size={14} className="text-teal-600" /> Match Score Distribution
+            <TrendingUp size={14} className="text-brand-600" /> Match Score Distribution
           </h4>
           <div className="flex items-center justify-center mb-3"><ScoreRing score={avgScore} size={80} /></div>
           <div className="space-y-2">
-            <ScoreBar label="High (80%+)" count={high} total={matches.length} color="bg-teal-500/60" />
+            <ScoreBar label="High (80%+)" count={high} total={matches.length} color="bg-emerald-500" />
             <ScoreBar label="Medium (40-79%)" count={med} total={matches.length} color="bg-amber-500/60" />
             <ScoreBar label="Low (<40%)" count={low} total={matches.length} color="bg-rose-500/60" />
           </div>
@@ -422,7 +422,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
 
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <Target size={14} className="text-teal-600" /> Oman Vision 2040
+            <Target size={14} className="text-brand-600" /> Oman Vision 2040
           </h4>
           {alignedPillars.length === 0 ? (
             <p className="text-xs text-ink-400">No direct pillar alignment detected</p>
@@ -430,7 +430,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
             <div className="space-y-2">
               {alignedPillars.map((p) => (
                 <div key={p} className="glass rounded-lg p-2.5 flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-teal-600 flex-shrink-0" />
+                  <CheckCircle2 size={14} className="text-brand-600 flex-shrink-0" />
                   <span className="text-xs text-ink-200">{p}</span>
                 </div>
               ))}
@@ -441,7 +441,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
 
         <div className="glass-card rounded-2xl p-4">
           <h4 className="text-xs font-semibold text-ink-100 mb-3 flex items-center gap-1.5">
-            <BarChart3 size={14} className="text-cyan-600" /> Category Summary
+            <BarChart3 size={14} className="text-slate-600" /> Category Summary
           </h4>
           {sortedAreas.length === 0 ? (
             <p className="text-xs text-ink-400">No matches to categorize</p>
@@ -460,7 +460,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
               <p className="text-[10px] text-ink-300 mb-1.5">Matched Keywords ({allKws.length})</p>
               <div className="flex flex-wrap gap-1">
                 {allKws.slice(0, 6).map((k) => (
-                  <span key={k} className="chip text-[10px]" style={{ background: 'rgba(13,148,136,0.1)', borderColor: 'rgba(13,148,136,0.2)', color: '#0d9488' }}>{k}</span>
+                  <span key={k} className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>{k}</span>
                 ))}
                 {allKws.length > 6 && <span className="chip text-[10px]">+{allKws.length - 6}</span>}
               </div>
@@ -473,7 +473,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
       {matches.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs text-ink-300 font-medium flex items-center gap-1.5">
-            <BookOpen size={14} className="text-cyan-600" /> Matched Publications ({matches.length})
+            <BookOpen size={14} className="text-slate-600" /> Matched Publications ({matches.length})
           </p>
           {matches.map((m) => (
             <div key={m.id} className="glass-card rounded-2xl p-4">
@@ -485,7 +485,7 @@ function ReportStep({ proposal, matches, onContinue, onBack }: {
                 </div>
                 <div className="hidden md:flex flex-wrap gap-1 max-w-[140px] justify-end">
                   {m.matched_keywords.map((k) => (
-                    <span key={k} className="chip text-[10px]" style={{ background: 'rgba(13,148,136,0.1)', borderColor: 'rgba(13,148,136,0.2)', color: '#0d9488' }}>{k}</span>
+                    <span key={k} className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>{k}</span>
                   ))}
                 </div>
               </div>
@@ -605,7 +605,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
     <div className="space-y-4">
       {/* Header */}
       <div className="mb-1">
-        <p className="text-[10px] text-teal-glow font-semibold tracking-widest uppercase mb-1">Evaluation</p>
+        <p className="text-[10px] text-brand font-semibold tracking-widest uppercase mb-1">Evaluation</p>
         <h2 className="text-xl font-bold text-ink-50">Three-Theme Proposal Evaluation</h2>
         <p className="text-xs text-ink-300 mt-1">Score each criterion on a 1–10 scale across the three official evaluation themes, then record the researcher and team judgment.</p>
       </div>
@@ -635,7 +635,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           <div className="relative w-14 h-14 flex-shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
               <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-              <circle cx="28" cy="28" r="22" fill="none" stroke="#0d9488" strokeWidth="6"
+              <circle cx="28" cy="28" r="22" fill="none" stroke="#c8102e" strokeWidth="6"
                 strokeDasharray={`${2 * Math.PI * 22}`}
                 strokeDashoffset={`${2 * Math.PI * 22 * (1 - overallPct / 100)}`}
                 strokeLinecap="round" />
@@ -650,8 +650,8 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           </div>
         </div>
         <div className="flex flex-wrap gap-4">
-          <OverviewBand label="Initial Proposal Evaluation" score={aTotal} max={aMax} color="text-teal-600" />
-          <OverviewBand label="Institutional Challenge Linkage & Impact" score={bTotal} max={bMax} color="text-cyan-600" />
+          <OverviewBand label="Initial Proposal Evaluation" score={aTotal} max={aMax} color="text-brand-600" />
+          <OverviewBand label="Institutional Challenge Linkage & Impact" score={bTotal} max={bMax} color="text-slate-600" />
           <OverviewBand label="Research Excellence" score={cTotal} max={cMax} color="text-amber-600" />
         </div>
       </div>
@@ -664,7 +664,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         criteria={APPENDIX_A_CRITERIA}
         scores={aScores}
         onChange={setAScores}
-        accentColor="teal"
+        accentColor="brand"
       />
 
       {/* Appendix B */}
@@ -675,7 +675,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
         criteria={APPENDIX_B_CRITERIA}
         scores={bScores}
         onChange={setBScores}
-        accentColor="cyan"
+        accentColor="slate"
       />
 
       {/* Appendix C */}
@@ -692,14 +692,14 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
       {/* Researcher & Team Judgment */}
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <h4 className="text-sm font-semibold text-ink-100 flex items-center gap-2">
-          <Users size={16} className="text-teal-600" /> Researcher & Team Judgment
+          <Users size={16} className="text-brand-600" /> Researcher & Team Judgment
         </h4>
 
         {/* Publication track record + team size */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="glass rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <BookOpen size={14} className="text-teal-600" />
+              <BookOpen size={14} className="text-brand-600" />
               <span className="text-xs font-semibold text-ink-200">Publication track record</span>
             </div>
             <p className="text-xl font-bold text-ink-50 mb-0.5">
@@ -713,7 +713,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
           </div>
           <div className="glass rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Users size={14} className="text-cyan-600" />
+              <Users size={14} className="text-slate-600" />
               <span className="text-xs font-semibold text-ink-200">Topic & team size</span>
             </div>
             <div className="flex items-center gap-2 mb-2">
@@ -742,7 +742,7 @@ function EvaluationStep({ proposal, matches, onBack, onComplete }: {
               onClick={() => setRecommendation('recommend')}
               className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium transition-all ${
                 recommendation === 'recommend'
-                  ? 'bg-teal-500/20 text-teal-700 ring-1 ring-teal-400/40'
+                  ? 'bg-brand-500/20 text-brand-700 ring-1 ring-brand-400/40'
                   : 'glass text-ink-200 hover:text-ink-50'
               }`}
             >
@@ -810,11 +810,11 @@ function CriteriaSection({ appendix, title, subtitle, criteria, scores, onChange
   criteria: string[];
   scores: number[];
   onChange: (scores: number[]) => void;
-  accentColor: 'teal' | 'cyan' | 'amber';
+  accentColor: 'brand' | 'slate' | 'amber';
 }) {
-  const colorMap = { teal: 'text-teal-600', cyan: 'text-cyan-600', amber: 'text-amber-600' };
-  const dotColorMap = { teal: 'bg-teal-500', cyan: 'bg-cyan-500', amber: 'bg-amber-500' };
-  const ringColorMap = { teal: 'bg-teal-500/20 text-teal-700 ring-teal-400/30', cyan: 'bg-cyan-500/20 text-cyan-700 ring-cyan-400/30', amber: 'bg-amber-500/20 text-amber-700 ring-amber-400/30' };
+  const colorMap = { brand: 'text-brand-600', slate: 'text-slate-600', amber: 'text-amber-600' };
+  const dotColorMap = { brand: 'bg-brand-500', slate: 'bg-slate-500', amber: 'bg-amber-500' };
+  const ringColorMap = { brand: 'bg-brand-500/20 text-brand-700 ring-brand-400/30', slate: 'bg-slate-500/20 text-slate-700 ring-slate-400/30', amber: 'bg-amber-500/20 text-amber-700 ring-amber-400/30' };
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
@@ -870,7 +870,7 @@ function JudgmentSlider({ label, value, onChange }: { label: string; value: numb
       <div className="relative flex items-center">
         <div className="w-full h-1 bg-ink-600/40 rounded-full" />
         <div
-          className="absolute w-3 h-3 rounded-full bg-teal-500 ring-2 ring-white/10 shadow-md"
+          className="absolute w-3 h-3 rounded-full bg-brand-500 ring-2 ring-white/10 shadow-md"
           style={{ left: `calc(${pct}% - 6px)` }}
         />
         <input
@@ -900,7 +900,7 @@ function ScoreBar({ label, count, total, color }: { label: string; count: number
         <span className="text-[10px] text-ink-300">{label}</span>
         <span className="text-[10px] font-semibold text-ink-100">{count}</span>
       </div>
-      <div className="h-1 rounded-full bg-ink-700/20 overflow-hidden">
+      <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
     </div>

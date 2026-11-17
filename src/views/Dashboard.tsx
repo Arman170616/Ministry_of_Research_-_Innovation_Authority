@@ -62,17 +62,17 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
   const maxPillarCount = Math.max(...Object.values(pillarAlignment), 1);
 
   const stats = [
-    { label: 'Total Proposals', value: proposals.length, icon: FileText, color: 'text-teal-600', bg: 'from-teal-500/10 to-teal-500/5' },
-    { label: 'Publications', value: publications.length, icon: BookOpen, color: 'text-cyan-600', bg: 'from-cyan-500/10 to-cyan-500/5' },
-    { label: 'Matches Found', value: matches.length, icon: GitCompare, color: 'text-blue-600', bg: 'from-blue-500/10 to-blue-500/5' },
+    { label: 'Total Proposals', value: proposals.length, icon: FileText, color: 'text-brand-600', bg: 'from-brand-500/10 to-brand-500/5' },
+    { label: 'Publications', value: publications.length, icon: BookOpen, color: 'text-slate-600', bg: 'from-slate-500/10 to-slate-500/5' },
+    { label: 'Matches Found', value: matches.length, icon: GitCompare, color: 'text-slate-600', bg: 'from-slate-500/10 to-slate-500/5' },
     { label: 'Avg Match Score', value: `${Math.round(avgMatchScore)}%`, icon: TrendingUp, color: 'text-amber-600', bg: 'from-amber-500/10 to-amber-500/5' },
   ];
 
   const statusBreakdown = [
-    { label: 'Pending', count: pendingProposals, icon: Clock, color: 'text-amber-600', badge: 'badge-pending' },
-    { label: 'Approved', count: approvedProposals, icon: CheckCircle2, color: 'text-teal-600', badge: 'badge-approved' },
-    { label: 'Under Review', count: proposals.filter((p) => p.status === 'under_review').length, icon: AlertCircle, color: 'text-cyan-600', badge: 'badge-under_review' },
-    { label: 'Rejected', count: proposals.filter((p) => p.status === 'rejected').length, icon: AlertCircle, color: 'text-rose-600', badge: 'badge-rejected' },
+    { label: 'Pending', count: pendingProposals, icon: Clock, color: 'text-amber-600', bar: 'bg-amber-500', badge: 'badge-pending' },
+    { label: 'Approved', count: approvedProposals, icon: CheckCircle2, color: 'text-emerald-600', bar: 'bg-emerald-500', badge: 'badge-approved' },
+    { label: 'Under Review', count: proposals.filter((p) => p.status === 'under_review').length, icon: AlertCircle, color: 'text-slate-600', bar: 'bg-slate-500', badge: 'badge-under_review' },
+    { label: 'Rejected', count: proposals.filter((p) => p.status === 'rejected').length, icon: AlertCircle, color: 'text-brand', bar: 'bg-brand', badge: 'badge-rejected' },
   ];
 
   const recentProposals = proposals.slice(0, 5);
@@ -112,15 +112,15 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
             <p className="text-[10px] text-ink-400 mt-1">Avg per proposal: {formatCurrency(avgFunding)}</p>
           </div>
           <div className="space-y-2.5">
-            <FundingBar label="Low (< 30K OMR)" count={lowFundingProposals.length} total={proposals.length} color="from-teal-400/60 to-teal-500/60" />
+            <FundingBar label="Low (< 30K OMR)" count={lowFundingProposals.length} total={proposals.length} color="from-emerald-400 to-emerald-500" />
             <FundingBar label="Medium (30K–75K)" count={mediumFundingProposals.length} total={proposals.length} color="from-amber-400/60 to-amber-500/60" />
             <FundingBar label="High (75K+)" count={highFundingProposals.length} total={proposals.length} color="from-rose-400/60 to-rose-500/60" />
           </div>
           {lowFundingProposals.length > 0 && (
             <div className="glass rounded-xl p-3 mt-4 flex items-start gap-2">
-              <Lightbulb size={14} className="text-teal-600 mt-0.5 flex-shrink-0" />
+              <Lightbulb size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-ink-300">
-                <span className="text-teal-600 font-medium">{lowFundingProposals.length} low-budget proposal{lowFundingProposals.length !== 1 ? 's' : ''}</span> — consider consolidating or prioritizing for quick wins.
+                <span className="text-emerald-700 font-medium">{lowFundingProposals.length} low-budget proposal{lowFundingProposals.length !== 1 ? 's' : ''}</span> — consider consolidating or prioritizing for quick wins.
               </p>
             </div>
           )}
@@ -129,7 +129,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         {/* Oman Vision 2040 alignment */}
         <div className="glass-card rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-ink-100 mb-4 flex items-center gap-2">
-            <Target size={16} className="text-teal-600" />
+            <Target size={16} className="text-brand-600" />
             Oman Vision 2040 Alignment
           </h3>
           <div className="space-y-2.5">
@@ -142,9 +142,9 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
                     <span className="text-xs text-ink-200">{pillar}</span>
                     <span className="text-xs font-semibold text-ink-100">{count}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-ink-700/20 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-teal-500/60 to-cyan-500/60 transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all duration-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -171,13 +171,13 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
             <div className="space-y-2">
               {trendingTopics.map(([topic, count], i) => (
                 <div key={topic} className="flex items-center gap-3">
-                  <span className={`text-xs font-bold ${i < 3 ? 'text-teal-600' : 'text-ink-400'} w-4`}>{i + 1}</span>
+                  <span className={`text-xs font-bold ${i < 3 ? 'text-brand-600' : 'text-ink-400'} w-4`}>{i + 1}</span>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-0.5">
                       <span className="text-xs text-ink-200 capitalize">{topic}</span>
                       <span className="text-xs font-semibold text-ink-100">{count}</span>
                     </div>
-                    <div className="h-1 rounded-full bg-ink-700/20 overflow-hidden">
+                    <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-rose-400/50 to-amber-400/50 transition-all duration-500"
                         style={{ width: `${(count / trendingTopics[0][1]) * 100}%` }}
@@ -196,7 +196,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         {/* Proposal status breakdown */}
         <div className="glass-card rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-ink-100 mb-4 flex items-center gap-2">
-            <FileText size={16} className="text-teal-600" />
+            <FileText size={16} className="text-brand-600" />
             Proposal Status
           </h3>
           <div className="space-y-3">
@@ -212,9 +212,9 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
                     </div>
                     <span className="text-xs font-semibold text-ink-100">{s.count}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-ink-700/20 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-teal-500/60 to-cyan-500/60 transition-all duration-500"
+                      className={`h-full rounded-full ${s.bar} transition-all duration-500`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -227,7 +227,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         {/* Research area distribution */}
         <div className="glass-card rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-ink-100 mb-4 flex items-center gap-2">
-            <BarChart3 size={16} className="text-cyan-600" />
+            <BarChart3 size={16} className="text-slate-600" />
             Research Areas
           </h3>
           {topAreas.length === 0 ? (
@@ -240,9 +240,9 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
                     <span className="text-xs text-ink-200">{area}</span>
                     <span className="text-xs font-semibold text-ink-100">{count}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-ink-700/20 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-500/60 to-blue-500/60 transition-all duration-500"
+                      className="h-full rounded-full bg-gradient-to-r from-slate-500 to-slate-600 transition-all duration-500"
                       style={{ width: `${(count / maxAreaCount) * 100}%` }}
                     />
                   </div>
@@ -255,14 +255,14 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         {/* Match score overview */}
         <div className="glass-card rounded-2xl p-6 flex flex-col items-center justify-center">
           <h3 className="text-sm font-semibold text-ink-100 mb-4 self-start flex items-center gap-2">
-            <GitCompare size={16} className="text-blue-600" />
+            <GitCompare size={16} className="text-slate-600" />
             Match Overview
           </h3>
           <ScoreRing score={avgMatchScore} size={120} />
           <p className="text-xs text-ink-300 mt-3 text-center">Average match score across all proposals</p>
           <div className="grid grid-cols-2 gap-3 w-full mt-4">
             <div className="glass rounded-lg p-3 text-center">
-              <p className="text-lg font-bold text-teal-600">{highConfidenceMatches}</p>
+              <p className="text-lg font-bold text-emerald-600">{highConfidenceMatches}</p>
               <p className="text-[10px] text-ink-300">High (80%+)</p>
             </div>
             <div className="glass rounded-lg p-3 text-center">
@@ -283,8 +283,8 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
             <div className="space-y-3">
               {recentProposals.map((p) => (
                 <div key={p.id} className="flex items-start gap-3 group">
-                  <div className="glass rounded-lg p-2 mt-0.5 group-hover:bg-white/20 transition-colors">
-                    <FileText size={14} className="text-teal-600" />
+                  <div className="glass rounded-lg p-2 mt-0.5 group-hover:bg-slate-50 transition-colors">
+                    <FileText size={14} className="text-brand-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-ink-100 truncate">{p.title}</p>
@@ -333,7 +333,7 @@ function FundingBar({ label, count, total, color }: { label: string; count: numb
         <span className="text-xs text-ink-200">{label}</span>
         <span className="text-xs font-semibold text-ink-100">{count}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-ink-700/20 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
         <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
     </div>

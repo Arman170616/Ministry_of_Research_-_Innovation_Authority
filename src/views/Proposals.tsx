@@ -101,11 +101,11 @@ export function Proposals() {
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 ${showFilters ? 'ring-1 ring-teal-400/40' : ''}`}
+          className={`btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 ${showFilters ? 'ring-1 ring-brand-400/40' : ''}`}
         >
           <Filter size={16} />
           Filters
-          {activeFilters > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-teal-glow text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
+          {activeFilters > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
         </button>
         <select
           value={sortBy}
@@ -155,7 +155,7 @@ export function Proposals() {
             </div>
           </div>
           {activeFilters > 0 && (
-            <button onClick={clearFilters} className="mt-3 text-xs text-teal-glow hover:text-teal-700 flex items-center gap-1">
+            <button onClick={clearFilters} className="mt-3 text-xs text-brand hover:text-brand-700 flex items-center gap-1">
               <X size={12} /> Clear all filters
             </button>
           )}
@@ -185,18 +185,18 @@ export function Proposals() {
               <div key={p.id} className="glass-card rounded-2xl p-5 text-left group relative">
                 <div className="flex items-start justify-between mb-3">
                   <div className="glass rounded-lg p-2">
-                    <FileText size={16} className="text-teal-glow" />
+                    <FileText size={16} className="text-brand" />
                   </div>
                   <div className="flex items-center gap-2">
                     {matchCount > 0 && (
-                      <span className="chip text-[10px]" style={{ background: 'rgba(13,148,136,0.1)', borderColor: 'rgba(13,148,136,0.2)', color: '#0d9488' }}>
+                      <span className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>
                         <Sparkles size={10} className="mr-0.5" /> {matchCount} match{matchCount !== 1 ? 'es' : ''}
                       </span>
                     )}
                     <span className={`badge badge-${p.status}`}>{statusLabel(p.status)}</span>
                   </div>
                 </div>
-                <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-teal-glow transition-colors">{p.title}</h3>
+                <h3 className="text-sm font-semibold text-ink-50 mb-1 line-clamp-2 group-hover:text-brand transition-colors">{p.title}</h3>
                 <p className="text-xs text-ink-300 mb-3">{p.author}</p>
                 {p.research_area && <span className="chip mb-2">{p.research_area}</span>}
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-ink-700/30">
@@ -268,7 +268,7 @@ export function Proposals() {
                   <button
                     key={s}
                     onClick={() => { handleStatusChange(selected.id, s); setSelected({ ...selected, status: s }); }}
-                    className={`badge badge-${s} ${selected.status === s ? 'ring-2 ring-teal-glow/40' : 'opacity-60 hover:opacity-100'} cursor-pointer transition-opacity`}
+                    className={`badge badge-${s} ${selected.status === s ? 'ring-2 ring-brand/40' : 'opacity-60 hover:opacity-100'} cursor-pointer transition-opacity`}
                   >
                     {statusLabel(s)}
                   </button>
@@ -289,7 +289,7 @@ export function Proposals() {
 
       {/* Confirm delete dialog */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
           <div className="glass-strong relative z-10 w-full max-w-sm rounded-2xl p-6 slide-up">
             <div className="flex items-center gap-3 mb-3">
