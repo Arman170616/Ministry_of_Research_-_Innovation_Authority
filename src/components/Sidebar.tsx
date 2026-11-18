@@ -34,10 +34,9 @@ export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEm
       >
         <div className="h-1 bg-brand flex-shrink-0" />
 
-        {/* Logo */}
+        {/* Title */}
         <div className="relative px-5 pt-6 pb-5 border-b border-slate-200">
-          <img src="/images/ria-logo.png" alt={t('Research and Innovation Authority')} className="h-11 w-auto" />
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">{t('Research Portal')}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">{t('Research Portal')}</p>
           <button onClick={onCloseMobile} className="absolute end-3 top-5 md:hidden text-ink-300 hover:text-ink-50" aria-label={t('Close menu')}>
             <X size={20} />
           </button>

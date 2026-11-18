@@ -7,8 +7,6 @@ import { auth } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
 import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
-const LOGO_SRC = '/images/ria-logo.png';
-
 const STEPS = [
   { icon: FileInput, title: 'Intake', text: 'Submit and filter funding proposals in one place.' },
   { icon: GitCompareArrows, title: 'Match', text: 'Compare proposals against the national publication record.' },
@@ -88,9 +86,7 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
         <LatticePattern />
         <div className="absolute inset-x-0 top-0 h-1.5 bg-[#c8102e]" />
 
-        <div className="relative">
-          <img src={LOGO_SRC} alt={t('Research and Innovation Authority')} className="h-20 w-auto mix-blend-multiply xl:h-24" />
-        </div>
+        <div aria-hidden="true" />
 
         <div className="relative max-w-lg">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8102e]">{t('Research Portal')}</p>
@@ -131,9 +127,6 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
         </div>
         <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
           <div className="w-full max-w-[420px] slide-up">
-            {/* Mobile logo */}
-            <img src={LOGO_SRC} alt={t('Research and Innovation Authority')} className="mx-auto mb-10 h-16 w-auto lg:hidden" />
-
             <h2 className="text-3xl font-bold text-slate-900">
               {mode === 'signin' ? t('Welcome back') : t('Create your account')}
             </h2>

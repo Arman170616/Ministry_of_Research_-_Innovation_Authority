@@ -12,13 +12,13 @@ A single workspace for reviewing national research funding proposals, from submi
 
 ![Login page](docs/login-page.png)
 
-The login page has a branded panel (logo, platform overview, workflow steps) on the left and the sign-in form on the right. On phones and narrow screens the branded panel is hidden and the logo appears above the form.
+The login page has a branded panel (platform overview and workflow steps) on the left and the sign-in form on the right. On phones and narrow screens the branded panel is hidden and only the form is shown.
 
 - **Sign in** with a username or email and a password. A plain username also matches an account registered as `username@ria.gov.om`.
 - **Sign up** with an email and a password. The new user is signed in straight away.
 - The password field has a show/hide toggle, and errors are shown above the form.
 
-The page is in [`src/views/Login.tsx`](src/views/Login.tsx) and the logo is in [`public/images/ria-logo.png`](public/images/ria-logo.png).
+The page is in [`src/views/Login.tsx`](src/views/Login.tsx).
 
 ## Tech stack
 
