@@ -86,53 +86,56 @@ export function Ranking({ proposals, evaluations, onUpload }: {
       ) : (
         <div className="glass-card rounded-2xl overflow-hidden">
           {/* Header (wide screens) */}
-          <div className="hidden lg:grid grid-cols-[56px_minmax(0,1fr)_200px_90px_150px_130px] gap-4 px-5 py-3 border-b border-slate-200 text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+          <div className="hidden lg:grid grid-cols-[56px_minmax(0,1fr)_150px_280px_110px_130px] gap-4 px-5 py-3 border-b border-slate-200 text-[10px] font-semibold uppercase tracking-wider text-ink-400">
             <span>{t('Rank')}</span>
             <span>{t('Proposal')}</span>
-            <span>{t('Appendix A · B · C')}</span>
+            <span>{t('Research Area')}</span>
+            <span>{t('Criteria match')}</span>
             <span>{t('Score')}</span>
-            <span>{t('Recommendation')}</span>
             <span />
           </div>
           <div className="divide-y divide-slate-100">
             {rows.map((r) => {
               const v = verdict(r.score);
               return (
-                <div key={r.proposal.id} className="grid grid-cols-[48px_minmax(0,1fr)] lg:grid-cols-[56px_minmax(0,1fr)_200px_90px_150px_130px] gap-x-4 gap-y-3 px-5 py-4 items-center">
+                <div key={r.proposal.id} className="grid grid-cols-[48px_minmax(0,1fr)] lg:grid-cols-[56px_minmax(0,1fr)_150px_280px_110px_130px] gap-x-4 gap-y-3 px-5 py-4 items-center">
                   <RankBadge rank={r.rank} />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink-50 truncate" dir="auto">{r.proposal.title}</p>
+                    <p className="text-sm font-semibold text-ink-50 line-clamp-2" dir="auto">{r.proposal.title}</p>
                     <p className="text-xs text-ink-300 truncate" dir="auto">
-                      {[r.proposal.author, r.proposal.research_area ? t(r.proposal.research_area) : null].filter(Boolean).join(' · ')}
+                      {[r.proposal.author, r.proposal.institution].filter(Boolean).join(' · ')}
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                       <span className={`badge badge-${r.proposal.status}`}>{statusLabel(r.proposal.status)}</span>
                       <span className="text-[11px] text-ink-400">{formatCurrency(r.proposal.funding_requested)}</span>
+                      {r.evaluation.recommendation === 'recommend' ? (
+                        <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> {t('Recommended')}</span>
+                      ) : r.evaluation.recommendation === 'do_not_fund' ? (
+                        <span className="text-[11px] font-medium text-rose-600 flex items-center gap-1"><XCircle size={12} /> {t('Not recommended')}</span>
+                      ) : null}
                       {r.reviewers > 1 && <span className="text-[11px] text-ink-400">· {t('{count} reviewers', { count: r.reviewers })}</span>}
                     </div>
                   </div>
-                  <div className="col-span-2 lg:col-span-1 flex gap-2">
+                  <div className="col-span-2 lg:col-span-1">
+                    {r.proposal.research_area
+                      ? <span className="chip text-[11px]" dir="auto">{t(r.proposal.research_area)}</span>
+                      : <span className="text-xs text-ink-400">—</span>}
+                  </div>
+                  <div className="col-span-2 lg:col-span-1 space-y-1.5">
                     {APPENDICES.map((ap) => (
-                      <div key={ap.key} className="flex-1" title={t(ap.title)}>
-                        <div className="flex items-baseline justify-between text-[10px] text-ink-400">
-                          <span>{ap.letter}</span><span className="font-semibold text-ink-200">{r.sections[ap.key]}%</span>
-                        </div>
-                        <div className="h-1 rounded-full bg-slate-100 overflow-hidden mt-1">
+                      <div key={ap.key} className="flex items-center gap-2 text-[11px]" title={t(ap.title)}>
+                        <span className="w-3 font-semibold text-ink-300">{ap.letter}</span>
+                        <span className="flex-1 min-w-0 truncate text-ink-300">{t(ap.title)}</span>
+                        <div className="w-14 h-1.5 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
                           <div className="h-full rounded-full bg-brand/70" style={{ width: `${r.sections[ap.key]}%` }} />
                         </div>
+                        <span className="w-8 text-end font-semibold text-ink-100">{r.sections[ap.key]}%</span>
                       </div>
                     ))}
                   </div>
                   <div className="col-span-2 lg:col-span-1 flex lg:block items-center gap-2">
                     <p className="text-xl font-bold text-ink-50">{r.score}%</p>
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${TONE_CLASSES[v.tone]}`}>{t(v.label)}</span>
-                  </div>
-                  <div className="col-span-2 lg:col-span-1">
-                    {r.evaluation.recommendation === 'recommend' ? (
-                      <span className="text-xs font-medium text-emerald-700 flex items-center gap-1"><CheckCircle2 size={13} /> {t('Recommended')}</span>
-                    ) : r.evaluation.recommendation === 'do_not_fund' ? (
-                      <span className="text-xs font-medium text-rose-600 flex items-center gap-1"><XCircle size={13} /> {t('Not recommended')}</span>
-                    ) : <span className="text-xs text-ink-400">—</span>}
                   </div>
                   <div className="col-span-2 lg:col-span-1">
                     <button onClick={() => setOpen(r)} className="btn-liquid rounded-xl px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 w-full lg:w-auto justify-center whitespace-nowrap">

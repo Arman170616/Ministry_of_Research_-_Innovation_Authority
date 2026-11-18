@@ -1,8 +1,8 @@
-import { FileText, ClipboardCheck, ThumbsUp, TrendingUp, CheckCircle2, Clock, AlertCircle, Flame, Target, Wallet, Lightbulb, BarChart3, Trophy } from 'lucide-react';
+import { FileText, ClipboardCheck, ThumbsUp, TrendingUp, CheckCircle2, Clock, AlertCircle, Flame, Target, Wallet, BarChart3, Trophy } from 'lucide-react';
 import type { Proposal, Evaluation } from '@/lib/types';
 import { rankProposals, verdict, TONE_CLASSES, PILLAR_KEYWORDS } from '@/lib/criteria';
 import { ScoreRing } from '@/components/ui';
-import { formatDate, formatCurrency, statusLabel, OMAN_VISION_PILLARS, FUNDING_TIERS } from '@/lib/utils';
+import { formatDate, formatCurrency, statusLabel, OMAN_VISION_PILLARS } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
 interface DashboardProps {
@@ -27,9 +27,6 @@ export function Dashboard({ proposals, evaluations }: DashboardProps) {
   ].map((b) => ({ ...b, count: ranked.filter((r) => r.score >= b.min && r.score < b.max).length, tone: verdict(b.min).tone }));
 
   // Funding analysis
-  const lowFundingProposals = proposals.filter((p) => (p.funding_requested ?? 0) > 0 && (p.funding_requested ?? 0) < FUNDING_TIERS.LOW);
-  const mediumFundingProposals = proposals.filter((p) => (p.funding_requested ?? 0) >= FUNDING_TIERS.LOW && (p.funding_requested ?? 0) < FUNDING_TIERS.MEDIUM);
-  const highFundingProposals = proposals.filter((p) => (p.funding_requested ?? 0) >= FUNDING_TIERS.MEDIUM);
 
   // Research area distribution
   const areaCounts: Record<string, number> = {};
@@ -108,24 +105,11 @@ export function Dashboard({ proposals, evaluations }: DashboardProps) {
             <Wallet size={16} className="text-amber-600" />
             {t('Funding Analysis')}
           </h3>
-          <div className="glass rounded-xl p-4 mb-4 text-center">
+          <div className="glass rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-amber-600">{formatCurrency(totalFunding)}</p>
             <p className="text-xs text-ink-300 mt-1">{t('Total Funding Requested')}</p>
             <p className="text-[10px] text-ink-400 mt-1">{t('Avg per proposal: {amount}', { amount: formatCurrency(avgFunding) })}</p>
           </div>
-          <div className="space-y-2.5">
-            <FundingBar label={t('Low (< 30K OMR)')} count={lowFundingProposals.length} total={proposals.length} color="from-emerald-400 to-emerald-500" />
-            <FundingBar label={t('Medium (30K–75K)')} count={mediumFundingProposals.length} total={proposals.length} color="from-amber-400/60 to-amber-500/60" />
-            <FundingBar label={t('High (75K+)')} count={highFundingProposals.length} total={proposals.length} color="from-rose-400/60 to-rose-500/60" />
-          </div>
-          {lowFundingProposals.length > 0 && (
-            <div className="glass rounded-xl p-3 mt-4 flex items-start gap-2">
-              <Lightbulb size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-ink-300">
-                <span className="text-emerald-700 font-medium">{t(lowFundingProposals.length === 1 ? '{count} low-budget proposal' : '{count} low-budget proposals', { count: lowFundingProposals.length })}</span> {t('— consider consolidating or prioritizing for quick wins.')}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Oman Vision 2040 alignment */}
@@ -323,21 +307,6 @@ export function Dashboard({ proposals, evaluations }: DashboardProps) {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function FundingBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-ink-200">{label}</span>
-        <span className="text-xs font-semibold text-ink-100">{count}</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-        <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

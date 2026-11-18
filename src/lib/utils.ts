@@ -65,9 +65,3 @@ export const OMAN_VISION_PILLARS = [
   'Health & Wellbeing',
   'Heritage & Culture',
 ];
-
-export const FUNDING_TIERS = {
-  LOW: 30000,
-  MEDIUM: 75000,
-  HIGH: 150000,
-};

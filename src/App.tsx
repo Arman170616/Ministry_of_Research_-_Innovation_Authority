@@ -15,7 +15,7 @@ import { useI18n } from '@/lib/i18n';
 const VIEW_META: Record<View, { title: string; subtitle: string }> = {
   dashboard: { title: 'Research Dashboard', subtitle: 'Overview of proposals, assessments and funding' },
   proposals: { title: 'Research Proposals', subtitle: 'Upload and filter funding proposals for review' },
-  ranking: { title: 'Proposal Ranking', subtitle: 'Proposals ranked by how well they meet the evaluation criteria' },
+  ranking: { title: 'Ranking & Matching', subtitle: 'Proposals ranked by how well they match the evaluation criteria' },
 };
 
 function FullScreenMessage({ children }: { children: React.ReactNode }) {

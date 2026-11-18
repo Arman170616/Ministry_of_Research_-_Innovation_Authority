@@ -8,7 +8,7 @@ A single workspace for assessing national research funding proposals against the
 2. **Assessment**: AI reads each proposal and scores every criterion in Appendix A, B and C, with a reason for each score.
 3. **Review**: a reviewer checks the details and scores, changes any they disagree with, and records the funding recommendation.
 4. **Matching report**: shows how well the proposal meets the criteria: the overall score, a score for each appendix, strengths and weaknesses. It can be printed.
-5. **Ranking**: all assessed proposals are ranked best first by their overall score.
+5. **Ranking & Matching**: all assessed proposals are ranked best first by their overall score, with their research area and how well they match each appendix (A, B, C).
 
 ## Login page
 
@@ -82,7 +82,7 @@ The whole interface is available in **English** and **Arabic (العربية)**.
 | 45–59% | Partial match |
 | below 45% | Weak match |
 
-**Ranking.** The Ranking page lists assessed proposals by overall score, best first; proposals with the same score share a rank. If several reviewers have evaluated a proposal, their scores are averaged. Filter by research area, status or recommendation, and open any proposal's matching report. Proposals without an evaluation are listed separately.
+**Ranking & Matching.** The Ranking & Matching page lists assessed proposals by overall score, best first; proposals with the same score share a rank. If several reviewers have evaluated a proposal, their scores are averaged. Filter by research area, status or recommendation, and open any proposal's matching report. Proposals without an evaluation are listed separately.
 
 ## AI analysis
 

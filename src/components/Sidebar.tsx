@@ -16,7 +16,7 @@ interface SidebarProps {
 const NAV_ITEMS: { id: View; label: string; icon: LucideIcon }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'proposals', label: 'Proposals', icon: FileText },
-  { id: 'ranking', label: 'Ranking', icon: Trophy },
+  { id: 'ranking', label: 'Ranking & Matching', icon: Trophy },
 ];
 
 export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEmail, onSignOut }: SidebarProps) {

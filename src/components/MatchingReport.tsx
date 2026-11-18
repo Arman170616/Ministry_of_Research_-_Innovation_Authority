@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import {
-  FileText, Printer, Sparkles, CheckCircle2, AlertCircle, XCircle, Users, Target, Trophy, MessageSquare,
+  Printer, Sparkles, CheckCircle2, AlertCircle, XCircle, Users, Target, Trophy, MessageSquare,
 } from 'lucide-react';
 import type { Evaluation, Proposal } from '@/lib/types';
 import { APPENDICES, overallPercent, percent, verdict, TONE_CLASSES, alignedPillars, type Scores } from '@/lib/criteria';
@@ -181,12 +181,6 @@ export function MatchingReport({ proposal, evaluation, rank, totalRanked }: {
           <p className="text-xs text-ink-200 leading-relaxed whitespace-pre-line" dir="auto">{evaluation.evaluator_notes}</p>
         </div>
       )}
-
-      <p className="text-[10px] text-ink-400 flex items-center gap-1.5">
-        <FileText size={11} />
-        {ai.model ? t('Assessed by AI ({model}) and reviewed by a person.', { model: ai.model }) : t('Scored by a reviewer.')}
-        {evaluation.updated_at && <> · {formatDate(evaluation.updated_at)}</>}
-      </p>
     </div>
   );
 }
