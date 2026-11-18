@@ -1,23 +1,22 @@
+from types import SimpleNamespace
+
 from django.contrib.auth import authenticate, get_user_model
-from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action, api_view, parser_classes, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes, throttle_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 
 from . import ai
-from .matching import generate_matches, save_ai_matches
-from .models import Evaluation, Match, Publication
+from .models import Evaluation
 from .permissions import proposals_for
 from .serializers import (
+    AssessSerializer,
     EvaluationSerializer,
     LoginSerializer,
-    MatchSerializer,
     ProposalSerializer,
-    PublicationSerializer,
     RegisterSerializer,
     UserSerializer,
 )
@@ -91,81 +90,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class PublicationViewSet(viewsets.ModelViewSet):
-    """Publications are a shared library for all signed-in staff."""
-
-    queryset = Publication.objects.all()
-    serializer_class = PublicationSerializer
-
-
-class MatchViewSet(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
-):
-    """Matches are created by the matching engine; people can only review them."""
-
-    serializer_class = MatchSerializer
-
-    def get_queryset(self):
-        qs = Match.objects.select_related('proposal', 'publication').filter(
-            proposal__in=proposals_for(self.request.user)
-        )
-        proposal_id = self.request.query_params.get('proposal_id')
-        if proposal_id:
-            qs = qs.filter(proposal_id=proposal_id)
-        return qs.order_by('-match_score', '-created_at')
-
-    def get_throttles(self):
-        if self.action == 'generate':
-            self.throttle_scope = 'ai'
-            return [ScopedRateThrottle()]
-        return super().get_throttles()
-
-    @staticmethod
-    def _match(proposals, language: str = 'en') -> tuple[int, str, str | None]:
-        """Match proposals with Claude when available, otherwise by keyword overlap.
-
-        Returns (number of matches, method used, warning to show or None).
-        """
-        proposals = list(proposals)
-        if ai.is_enabled():
-            try:
-                publications = list(Publication.objects.all())
-                count = sum(save_ai_matches(p, ai.match_publications(p, publications, language)) for p in proposals)
-                return count, 'ai', None
-            except ai.AIError as e:
-                return generate_matches(proposals), 'keyword', f'AI matching failed ({e}) - used keyword matching instead.'
-        return generate_matches(proposals), 'keyword', None
-
-    @action(detail=False, methods=['post'])
-    def generate(self, request):
-        """Run matching.
-
-        With {"proposal_id": ...}: match that one proposal and return its matches.
-        Without: match every proposal the user can see and return {"count": n, "method": ..., "warning": ...}.
-        """
-        proposal_id = request.data.get('proposal_id')
-        language = _language(request)
-        if proposal_id:
-            proposal = get_object_or_404(proposals_for(request.user), pk=proposal_id)
-            _, method, warning = self._match([proposal], language)
-            matches = self.get_queryset().filter(proposal=proposal)
-            response = Response(self.get_serializer(matches, many=True).data)
-            response['X-Match-Method'] = method
-            if warning:
-                response['X-Match-Warning'] = warning
-            return response
-        count, method, warning = self._match(proposals_for(request.user), language)
-        return Response({'count': count, 'method': method, 'warning': warning})
-
-
 class EvaluationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Each reviewer has one evaluation per proposal. POST creates or updates it."""
+    """Each reviewer has one evaluation per proposal. POST creates or updates it.
+
+    Listing returns every evaluation of the proposals the user can see, so staff can rank all proposals.
+    """
 
     serializer_class = EvaluationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Evaluation.objects.filter(user=self.request.user)
+        qs = Evaluation.objects.filter(proposal__in=proposals_for(self.request.user))
+        proposal_id = self.request.query_params.get('proposal_id')
+        if proposal_id:
+            qs = qs.filter(proposal_id=proposal_id)
+        return qs.order_by('-updated_at')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -212,9 +151,8 @@ def ai_extract(request):
         return Response({'detail': 'Attach the document as "file".'}, status=status.HTTP_400_BAD_REQUEST)
     if upload.size > ai.MAX_DOCUMENT_BYTES:
         return Response({'detail': 'The file is larger than 15 MB.'}, status=status.HTTP_400_BAD_REQUEST)
-    publication_keywords = [k for kws in Publication.objects.values_list('keywords', flat=True) for k in (kws or [])]
     try:
-        return Response(ai.extract_proposal(upload.read(), upload.name, publication_keywords))
+        return Response(ai.extract_proposal(upload.read(), upload.name))
     except ai.AIError as e:
         return _ai_error(e)
 
@@ -222,10 +160,14 @@ def ai_extract(request):
 @api_view(['POST'])
 @throttle_classes([AIThrottle])
 def ai_evaluate(request):
-    """Suggest evaluation scores for a proposal (nothing is saved; the reviewer submits the final scores)."""
-    proposal = get_object_or_404(proposals_for(request.user), pk=request.data.get('proposal_id'))
-    matches = Match.objects.filter(proposal=proposal).select_related('publication').order_by('-match_score')[:10]
+    """Assess a proposal against the criteria and suggest scores.
+
+    Takes the proposal's details and full text (it does not need to be saved yet, so several uploads can be
+    assessed before review). Nothing is stored; the reviewer submits the final scores.
+    """
+    data = AssessSerializer(data=request.data)
+    data.is_valid(raise_exception=True)
     try:
-        return Response(ai.suggest_evaluation(proposal, matches, _language(request)))
+        return Response(ai.suggest_evaluation(SimpleNamespace(**data.validated_data), _language(request)))
     except ai.AIError as e:
         return _ai_error(e)

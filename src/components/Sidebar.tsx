@@ -1,8 +1,8 @@
-import { LayoutDashboard, FileText, BookOpen, GitCompare, X, LogOut, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, Trophy, X, LogOut, type LucideIcon } from 'lucide-react';
 
 import { useI18n } from '@/lib/i18n';
 
-export type View = 'dashboard' | 'proposals' | 'publications' | 'matching';
+export type View = 'dashboard' | 'proposals' | 'ranking';
 
 interface SidebarProps {
   current: View;
@@ -16,8 +16,7 @@ interface SidebarProps {
 const NAV_ITEMS: { id: View; label: string; icon: LucideIcon }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'proposals', label: 'Proposals', icon: FileText },
-  { id: 'publications', label: 'Publications', icon: BookOpen },
-  { id: 'matching', label: 'Matching', icon: GitCompare },
+  { id: 'ranking', label: 'Ranking', icon: Trophy },
 ];
 
 export function Sidebar({ current, onNavigate, mobileOpen, onCloseMobile, userEmail, onSignOut }: SidebarProps) {

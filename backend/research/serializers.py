@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Evaluation, Match, Proposal, Publication
+from .models import Evaluation, Proposal
 
 User = get_user_model()
 
@@ -58,33 +58,17 @@ class ProposalSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user_id', 'created_at']
 
 
-class PublicationSerializer(serializers.ModelSerializer):
-    keywords = KeywordListField(required=False)
+class AssessSerializer(serializers.Serializer):
+    """Proposal details sent for AI assessment (POST /api/ai/evaluate/)."""
 
-    class Meta:
-        model = Publication
-        fields = [
-            'id', 'title', 'authors', 'journal', 'research_area', 'abstract', 'document_url', 'doi',
-            'publication_date', 'keywords', 'citation_count', 'created_at',
-        ]
-        read_only_fields = ['id', 'created_at']
-
-
-class MatchSerializer(serializers.ModelSerializer):
-    proposal_id = serializers.UUIDField(read_only=True)
-    publication_id = serializers.UUIDField(read_only=True)
-    proposal = ProposalSerializer(read_only=True)
-    publication = PublicationSerializer(read_only=True)
-
-    class Meta:
-        model = Match
-        fields = [
-            'id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'method', 'rationale',
-            'status', 'reviewed_by', 'notes', 'created_at', 'proposal', 'publication',
-        ]
-        # Only the review fields can be changed through the API.
-        read_only_fields = ['id', 'proposal_id', 'publication_id', 'match_score', 'matched_keywords', 'method',
-                            'rationale', 'created_at']
+    title = serializers.CharField()
+    author = serializers.CharField(required=False, allow_blank=True, default='')
+    institution = serializers.CharField(required=False, allow_blank=True, allow_null=True, default='')
+    research_area = serializers.CharField(required=False, allow_blank=True, allow_null=True, default='')
+    funding_requested = serializers.FloatField(required=False, allow_null=True, min_value=0, default=0)
+    keywords = KeywordListField(required=False, default=list)
+    abstract = serializers.CharField(required=False, allow_blank=True, allow_null=True, default='')
+    document_text = serializers.CharField(required=False, allow_blank=True, default='', trim_whitespace=False)
 
 
 class EvaluationSerializer(serializers.ModelSerializer):
@@ -93,13 +77,17 @@ class EvaluationSerializer(serializers.ModelSerializer):
     a_scores = serializers.ListField(child=serializers.IntegerField(min_value=0, max_value=10), required=False)
     b_scores = serializers.ListField(child=serializers.IntegerField(min_value=0, max_value=10), required=False)
     c_scores = serializers.ListField(child=serializers.IntegerField(min_value=0, max_value=10), required=False)
+    ai_assessment = serializers.JSONField(required=False)
+    # Percentage of the maximum criteria score, used for ranking.
+    score = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Evaluation
         fields = [
             'id', 'proposal_id', 'user_id', 'a_scores', 'b_scores', 'c_scores', 'scientific_capacity',
-            'leadership', 'team_size', 'recommendation', 'evaluator_notes', 'created_at', 'updated_at',
+            'leadership', 'team_size', 'recommendation', 'evaluator_notes', 'ai_assessment', 'score',
+            'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'user_id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user_id', 'score', 'created_at', 'updated_at']
         # Saving is an upsert on (proposal, user), handled in the view.
         validators = []

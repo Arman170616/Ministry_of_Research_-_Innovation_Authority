@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react';
-import { LiquidBackground } from '@/components/ui';
+import { LiquidBackground, Toast } from '@/components/ui';
 import { Sidebar, type View } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { Dashboard } from '@/views/Dashboard';
 import { Proposals } from '@/views/Proposals';
-import { Publications } from '@/views/Publications';
-import { Matching } from '@/views/Matching';
+import { Ranking } from '@/views/Ranking';
 import { Login } from '@/views/Login';
-import { useProposals, usePublications, useMatches } from '@/lib/hooks';
+import { ProposalWizard } from '@/components/ProposalWizard';
+import { useProposals, useEvaluations } from '@/lib/hooks';
 import { auth, UNAUTHORIZED_EVENT } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
 import { useI18n } from '@/lib/i18n';
 
 const VIEW_META: Record<View, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Research Dashboard', subtitle: 'Overview of proposals, publications, and matching activity' },
+  dashboard: { title: 'Research Dashboard', subtitle: 'Overview of proposals, assessments and funding' },
   proposals: { title: 'Research Proposals', subtitle: 'Upload and filter funding proposals for review' },
-  publications: { title: 'Publications Library', subtitle: 'Published research papers for matching reference' },
-  matching: { title: 'Proposal Matching', subtitle: 'Filter proposals by publication matching score' },
+  ranking: { title: 'Proposal Ranking', subtitle: 'Proposals ranked by how well they meet the evaluation criteria' },
 };
 
 function FullScreenMessage({ children }: { children: React.ReactNode }) {
@@ -64,12 +63,20 @@ function Workspace({ user, onSignOut }: { user: AuthUser; onSignOut: () => void 
   const { t } = useI18n();
   const [view, setView] = useState<View>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
 
   const { proposals, loading: proposalsLoading } = useProposals();
-  const { publications, loading: publicationsLoading } = usePublications();
-  const { matches, loading: matchesLoading } = useMatches();
+  const { evaluations, loading: evaluationsLoading } = useEvaluations();
 
-  const loading = proposalsLoading || publicationsLoading || matchesLoading;
+  const loading = proposalsLoading || evaluationsLoading;
+  const openUpload = () => setUploadOpen(true);
+  const closeUpload = (saved: number) => {
+    setUploadOpen(false);
+    if (saved > 0) {
+      setToast({ id: Date.now(), message: t(saved === 1 ? '{count} proposal assessed and saved' : '{count} proposals assessed and saved', { count: saved }) });
+    }
+  };
   const meta = VIEW_META[view];
 
   return (
@@ -98,15 +105,17 @@ function Workspace({ user, onSignOut }: { user: AuthUser; onSignOut: () => void 
               <div className="glass-card rounded-2xl p-12 text-center text-ink-300">{t('Loading data...')}</div>
             ) : (
               <>
-                {view === 'dashboard' && <Dashboard proposals={proposals} publications={publications} matches={matches} />}
-                {view === 'proposals' && <Proposals />}
-                {view === 'publications' && <Publications />}
-                {view === 'matching' && <Matching />}
+                {view === 'dashboard' && <Dashboard proposals={proposals} evaluations={evaluations} />}
+                {view === 'proposals' && <Proposals onUpload={openUpload} />}
+                {view === 'ranking' && <Ranking proposals={proposals} evaluations={evaluations} onUpload={openUpload} />}
               </>
             )}
           </main>
         </div>
       </div>
+
+      <ProposalWizard open={uploadOpen} onClose={closeUpload} />
+      {toast && <Toast key={toast.id} message={toast.message} />}
     </div>
   );
 }

@@ -38,58 +38,6 @@ class Proposal(models.Model):
         return self.title
 
 
-class Publication(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    title = models.TextField()
-    authors = models.TextField()
-    journal = models.TextField(null=True, blank=True)
-    research_area = models.TextField(null=True, blank=True, db_index=True)
-    abstract = models.TextField(null=True, blank=True)
-    document_url = models.TextField(null=True, blank=True)
-    doi = models.TextField(null=True, blank=True)
-    publication_date = models.DateField(null=True, blank=True, db_index=True)
-    keywords = models.JSONField(default=list, blank=True)
-    citation_count = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self) -> str:
-        return self.title
-
-
-class Match(models.Model):
-    class Status(models.TextChoices):
-        PENDING = 'pending'
-        REVIEWED = 'reviewed'
-        ACCEPTED = 'accepted'
-        REJECTED = 'rejected'
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='matches')
-    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name='matches')
-    match_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    matched_keywords = models.JSONField(default=list, blank=True)
-    # How the match was found: 'ai' (Claude, judged by meaning) or 'keyword' (exact keyword overlap).
-    method = models.CharField(max_length=10, default='keyword')
-    rationale = models.TextField(blank=True, default='')
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    reviewed_by = models.TextField(null=True, blank=True)
-    notes = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-match_score']
-        constraints = [
-            models.UniqueConstraint(fields=['proposal', 'publication'], name='unique_proposal_publication'),
-        ]
-        verbose_name_plural = 'matches'
-
-    def __str__(self) -> str:
-        return f'{self.proposal} ↔ {self.publication} ({self.match_score})'
-
-
 class Evaluation(models.Model):
     class Recommendation(models.TextChoices):
         RECOMMEND = 'recommend'
@@ -108,6 +56,9 @@ class Evaluation(models.Model):
     team_size = models.PositiveIntegerField(default=1)
     recommendation = models.CharField(max_length=20, choices=Recommendation.choices, null=True, blank=True)
     evaluator_notes = models.TextField(null=True, blank=True)
+    # What the AI said when it assessed the proposal: a reason per criterion, summary, strengths,
+    # weaknesses and its own recommendation. Kept for the matching report; the scores above are final.
+    ai_assessment = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -118,3 +69,9 @@ class Evaluation(models.Model):
 
     def __str__(self) -> str:
         return f'Evaluation of {self.proposal} by {self.user}'
+
+    @property
+    def score(self) -> int:
+        """How well the proposal meets the criteria: all criterion scores as a percentage of the maximum."""
+        scores = [*self.a_scores, *self.b_scores, *self.c_scores]
+        return round(sum(scores) / (len(scores) * 10) * 100) if scores else 0

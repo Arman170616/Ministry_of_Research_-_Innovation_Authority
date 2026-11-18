@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 
 from . import ai
 
-from .models import Match, Proposal, Publication
+from .models import Evaluation, Proposal
 
 User = get_user_model()
 
@@ -53,7 +53,7 @@ class AuthTests(APITestCase):
         self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
 
 
-@patch('research.ai.is_enabled', return_value=False)  # keyword matching; never call the real API in tests
+@patch('research.ai.is_enabled', return_value=False)  # never call the real API in tests
 class DataTests(APITestCase):
     def setUp(self):
         self.alice = User.objects.create_user(username='alice', email='alice@x.com', password=STRONG_PASSWORD)
@@ -86,48 +86,15 @@ class DataTests(APITestCase):
         self.client.force_authenticate(self.bob)
         self.assertEqual(len(self.client.get('/api/proposals/').data), 1)
 
-    def test_matching_for_one_proposal(self, _ai_off):
+    def test_deleting_proposal_deletes_its_evaluations(self, _ai_off):
         p = self.make_proposal()
-        self.client.post('/api/publications/', {'title': 'Paper', 'authors': 'X', 'keywords': ['energy', 'ai']}, format='json')
-        self.client.post('/api/publications/', {'title': 'Other', 'authors': 'Y', 'keywords': ['history']}, format='json')
-
-        res = self.client.post('/api/matches/generate/', {'proposal_id': p['id']}, format='json')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.data), 1)
-        match = res.data[0]
-        self.assertEqual(match['match_score'], 40)
-        self.assertEqual(match['matched_keywords'], ['energy', 'ai'])
-        self.assertEqual(match['proposal']['id'], p['id'])
-        self.assertEqual(match['publication']['title'], 'Paper')
-
-    def test_regenerating_keeps_review_status(self, _ai_off):
-        p = self.make_proposal()
-        self.client.post('/api/publications/', {'title': 'Paper', 'authors': 'X', 'keywords': ['energy']}, format='json')
-        self.assertEqual(self.client.post('/api/matches/generate/', {}, format='json').data, {'count': 1, 'method': 'keyword', 'warning': None})
-        match_id = Match.objects.get().id
-        res = self.client.patch(f'/api/matches/{match_id}/', {'status': 'accepted', 'notes': 'Good fit'}, format='json')
-        self.assertEqual(res.status_code, 200)
-        self.client.post('/api/matches/generate/', {}, format='json')
-        self.assertEqual(Match.objects.get().status, 'accepted')
-        self.assertEqual(Match.objects.count(), 1)
-        self.assertEqual(Proposal.objects.get(pk=p['id']).matches.count(), 1)
-
-    def test_match_score_cannot_be_edited(self, _ai_off):
-        self.make_proposal()
-        self.client.post('/api/publications/', {'title': 'Paper', 'authors': 'X', 'keywords': ['energy']}, format='json')
-        self.client.post('/api/matches/generate/', {}, format='json')
-        m = Match.objects.get()
-        self.client.patch(f'/api/matches/{m.id}/', {'match_score': 99}, format='json')
-        m.refresh_from_db()
-        self.assertEqual(m.match_score, 20)
-
-    def test_deleting_proposal_deletes_its_matches(self, _ai_off):
-        p = self.make_proposal()
-        self.client.post('/api/publications/', {'title': 'Paper', 'authors': 'X', 'keywords': ['energy']}, format='json')
-        self.client.post('/api/matches/generate/', {}, format='json')
+        self.client.post('/api/evaluations/', {'proposal_id': p['id'], 'a_scores': [8]}, format='json')
         self.assertEqual(self.client.delete(f"/api/proposals/{p['id']}/").status_code, 204)
-        self.assertEqual(Match.objects.count(), 0)
-        self.assertEqual(Publication.objects.count(), 1)
+        self.assertEqual(Evaluation.objects.count(), 0)
+
+    def test_publication_endpoints_are_gone(self, _ai_off):
+        self.assertEqual(self.client.get('/api/publications/').status_code, 404)
+        self.assertEqual(self.client.get('/api/matches/').status_code, 404)
 
     def test_evaluation_is_upserted_per_user(self, _ai_off):
         p = self.make_proposal()
@@ -140,6 +107,27 @@ class DataTests(APITestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(second.data['id'], first.data['id'])
         self.assertEqual(second.data['recommendation'], 'do_not_fund')
+
+    def test_evaluation_score_and_ai_assessment(self, _ai_off):
+        p = self.make_proposal()
+        assessment = {'summary': 'Solid.', 'a': [{'score': 8, 'reason': 'Clear link.'}]}
+        res = self.client.post('/api/evaluations/', {
+            'proposal_id': p['id'], 'a_scores': [10, 5], 'b_scores': [5], 'c_scores': [0],
+            'ai_assessment': assessment}, format='json')
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data['score'], 50)  # 20 of 40 points
+        self.assertEqual(res.data['ai_assessment'], assessment)
+
+    def test_evaluations_list_follows_proposal_access(self, _ai_off):
+        p = self.make_proposal()
+        self.client.post('/api/evaluations/', {'proposal_id': p['id'], 'a_scores': [8]}, format='json')
+        self.client.force_authenticate(self.bob)
+        self.assertEqual(self.client.get('/api/evaluations/').data, [])
+        self.bob.is_staff = True
+        self.bob.save()
+        # Staff see every evaluation, so they can rank all proposals.
+        self.assertEqual(len(self.client.get('/api/evaluations/').data), 1)
+        self.assertEqual(len(self.client.get(f"/api/evaluations/?proposal_id={p['id']}").data), 1)
 
     def test_cannot_evaluate_someone_elses_proposal(self, _ai_off):
         p = self.make_proposal()
@@ -160,8 +148,6 @@ class AITests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='rev', email='rev@x.com', password=STRONG_PASSWORD)
         self.client.force_authenticate(self.user)
-        self.pub = Publication.objects.create(title='ML for desalination', authors='X', keywords=['desalination'])
-        self.other = Publication.objects.create(title='Forts', authors='Y', keywords=['heritage'])
 
     def make_proposal(self):
         return self.client.post('/api/proposals/', {
@@ -198,42 +184,22 @@ class AITests(APITestCase):
 
     @patch('research.ai.is_enabled', return_value=True)
     @patch('research.ai._ask')
-    def test_ai_matching_stores_reason_and_drops_low_scores(self, ask, _on):
-        p = self.make_proposal()
-        ask.return_value = {'matches': [
-            {'publication_id': str(self.pub.id), 'score': 85, 'shared_topics': ['Desalination'], 'reason': 'Same method.'},
-            {'publication_id': str(self.other.id), 'score': 5, 'shared_topics': [], 'reason': 'Unrelated.'},
-            {'publication_id': 'not-a-real-id', 'score': 90, 'shared_topics': [], 'reason': 'Invented.'},
-        ]}
-        res = self.client.post('/api/matches/generate/', {'proposal_id': p['id']}, format='json')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res['X-Match-Method'], 'ai')
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['match_score'], 85)
-        self.assertEqual(res.data[0]['rationale'], 'Same method.')
-        self.assertEqual(res.data[0]['matched_keywords'], ['desalination'])
-
-    @patch('research.ai.is_enabled', return_value=True)
-    @patch('research.ai._ask', side_effect=ai.AIError('service down'))
-    def test_matching_falls_back_to_keywords(self, _ask, _on):
-        p = self.make_proposal()
-        res = self.client.post('/api/matches/generate/', {'proposal_id': p['id']}, format='json')
-        self.assertEqual(res['X-Match-Method'], 'keyword')
-        self.assertIn('service down', res['X-Match-Warning'])
-        self.assertEqual([m['publication']['title'] for m in res.data], ['ML for desalination'])
-
-    @patch('research.ai.is_enabled', return_value=True)
-    @patch('research.ai._ask')
     def test_evaluation_suggestion_is_padded_and_clamped(self, ask, _on):
-        p = self.make_proposal()
         ask.return_value = {
             'a': [{'score': 12, 'reason': 'r'}] * 3,  # too few entries and out of range
             'b': [{'score': 7, 'reason': 'r'}] * 11, 'c': [{'score': 0, 'reason': 'r'}] * 9,
             'scientific_capacity': 8, 'leadership': 7, 'team_size': 4, 'recommendation': 'recommend',
             'summary': 'Good.', 'strengths': ['s'], 'weaknesses': ['w'],
         }
-        res = self.client.post('/api/ai/evaluate/', {'proposal_id': p['id']}, format='json')
+        # The proposal does not need to be saved: its details and full text are sent directly.
+        res = self.client.post('/api/ai/evaluate/', {
+            'title': 'Solar desalination', 'author': 'Dr. A', 'funding_requested': 72000,
+            'keywords': ['desalination'], 'document_text': 'Full proposal text.', 'language': 'ar'}, format='json')
         self.assertEqual(res.status_code, 200, res.data)
+        prompt = ask.call_args.args[0][0]['text']
+        self.assertIn('Full proposal text.', prompt)
+        self.assertIn('OMR 72,000', prompt)
+        self.assertIn('Arabic', prompt)
         self.assertEqual(len(res.data['a']), 8)
         self.assertEqual(res.data['a'][0]['score'], 10)
         self.assertEqual(res.data['a'][7]['score'], 5)
@@ -241,9 +207,12 @@ class AITests(APITestCase):
         self.assertEqual(res.data['c'][0]['score'], 1)
         self.assertEqual(res.data['recommendation'], 'recommend')
 
+    def test_assessment_needs_a_title(self):
+        res = self.client.post('/api/ai/evaluate/', {'author': 'Dr. A'}, format='json')
+        self.assertEqual(res.status_code, 400)
+
     @patch('research.ai.is_enabled', return_value=False)
     def test_ai_off_reports_clear_error(self, _off):
-        p = self.make_proposal()
-        res = self.client.post('/api/ai/evaluate/', {'proposal_id': p['id']}, format='json')
+        res = self.client.post('/api/ai/evaluate/', {'title': 'Solar desalination'}, format='json')
         self.assertEqual(res.status_code, 503)
         self.assertIn('ANTHROPIC_API_KEY', res.data['detail'])

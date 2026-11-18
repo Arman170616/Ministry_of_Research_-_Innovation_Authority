@@ -49,7 +49,7 @@ export function ScoreRing({ score, size = 60 }: { score: number; size?: number }
   );
 }
 
-export function Modal({ open, onClose, children, title }: { open: boolean; onClose: () => void; children: React.ReactNode; title: string }) {
+export function Modal({ open, onClose, children, title, wide = false }: { open: boolean; onClose: () => void; children: React.ReactNode; title: string; wide?: boolean }) {
   const { t } = useI18n();
   useEffect(() => {
     if (open) {
@@ -67,7 +67,7 @@ export function Modal({ open, onClose, children, title }: { open: boolean; onClo
   return (
     <div className="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="glass-strong relative z-10 w-full max-w-2xl rounded-3xl p-6 slide-up max-h-[90vh] overflow-y-auto">
+      <div className={`glass-strong relative z-10 w-full ${wide ? 'max-w-5xl' : 'max-w-2xl'} rounded-3xl p-6 slide-up max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-ink-50">{title}</h2>
           <button onClick={onClose} className="text-ink-200 hover:text-ink-50 transition-colors text-2xl leading-none" aria-label={t('Close')}>

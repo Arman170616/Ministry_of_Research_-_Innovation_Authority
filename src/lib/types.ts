@@ -1,7 +1,6 @@
 // Data shapes returned by the Django REST API (backend/research/serializers.py).
 
 export type ProposalStatus = 'pending' | 'under_review' | 'approved' | 'rejected';
-export type MatchStatus = 'pending' | 'reviewed' | 'accepted' | 'rejected';
 
 export interface Proposal {
   id: string;
@@ -20,42 +19,6 @@ export interface Proposal {
   created_at: string;
 }
 
-export interface Publication {
-  id: string;
-  title: string;
-  authors: string;
-  journal: string | null;
-  research_area: string | null;
-  abstract: string | null;
-  document_url: string | null;
-  doi: string | null;
-  publication_date: string | null;
-  keywords: string[];
-  citation_count: number;
-  created_at: string;
-}
-
-export interface Match {
-  id: string;
-  proposal_id: string;
-  publication_id: string;
-  match_score: number;
-  matched_keywords: string[];
-  /** 'ai' = Claude judged relevance by meaning; 'keyword' = exact keyword overlap. */
-  method: 'ai' | 'keyword';
-  /** Claude's one-sentence reason for the match (empty for keyword matches). */
-  rationale: string;
-  status: MatchStatus;
-  reviewed_by: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface MatchWithRelations extends Match {
-  proposal?: Proposal;
-  publication?: Publication;
-}
-
 export interface Evaluation {
   id: string;
   proposal_id: string;
@@ -68,6 +31,10 @@ export interface Evaluation {
   team_size: number;
   recommendation: 'recommend' | 'do_not_fund' | null;
   evaluator_notes: string | null;
+  /** What the AI said when it assessed the proposal (empty when it was scored by hand). */
+  ai_assessment: Partial<EvaluationSuggestion>;
+  /** How well the proposal meets the criteria: all criterion scores as a % of the maximum (from the server). */
+  score: number;
   created_at: string;
   updated_at: string;
 }
@@ -100,7 +67,7 @@ export interface CriterionSuggestion {
   reason: string;
 }
 
-/** Claude's suggested evaluation (POST /api/ai/evaluate/). Reviewers adjust and submit the final scores. */
+/** Claude's assessment against the criteria (POST /api/ai/evaluate/). Reviewers adjust and submit the final scores. */
 export interface EvaluationSuggestion {
   a: CriterionSuggestion[];
   b: CriterionSuggestion[];
@@ -113,9 +80,4 @@ export interface EvaluationSuggestion {
   strengths: string[];
   weaknesses: string[];
   model: string;
-}
-
-export interface MatchRun {
-  method: 'ai' | 'keyword';
-  warning: string | null;
 }

@@ -1,23 +1,30 @@
-import { FileText, BookOpen, GitCompare, TrendingUp, DollarSign, CheckCircle2, Clock, AlertCircle, Flame, Target, Wallet, Lightbulb, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
-import type { Proposal, Publication, MatchWithRelations } from '@/lib/types';
+import { FileText, ClipboardCheck, ThumbsUp, TrendingUp, CheckCircle2, Clock, AlertCircle, Flame, Target, Wallet, Lightbulb, BarChart3, Trophy } from 'lucide-react';
+import type { Proposal, Evaluation } from '@/lib/types';
+import { rankProposals, verdict, TONE_CLASSES, PILLAR_KEYWORDS } from '@/lib/criteria';
 import { ScoreRing } from '@/components/ui';
 import { formatDate, formatCurrency, statusLabel, OMAN_VISION_PILLARS, FUNDING_TIERS } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
 interface DashboardProps {
   proposals: Proposal[];
-  publications: Publication[];
-  matches: MatchWithRelations[];
+  evaluations: Evaluation[];
 }
 
-export function Dashboard({ proposals, publications, matches }: DashboardProps) {
-  const { t, isRTL } = useI18n();
+export function Dashboard({ proposals, evaluations }: DashboardProps) {
+  const { t } = useI18n();
   const pendingProposals = proposals.filter((p) => p.status === 'pending').length;
   const approvedProposals = proposals.filter((p) => p.status === 'approved').length;
   const totalFunding = proposals.reduce((sum, p) => sum + (p.funding_requested ?? 0), 0);
   const avgFunding = proposals.length > 0 ? totalFunding / proposals.length : 0;
-  const avgMatchScore = matches.length > 0 ? matches.reduce((s, m) => s + m.match_score, 0) / matches.length : 0;
-  const highConfidenceMatches = matches.filter((m) => m.match_score >= 80).length;
+  const { ranked } = rankProposals(proposals, evaluations);
+  const avgScore = ranked.length > 0 ? ranked.reduce((s, r) => s + r.score, 0) / ranked.length : 0;
+  const recommended = ranked.filter((r) => r.evaluation.recommendation === 'recommend').length;
+  const bands = [
+    { label: 'Strong match', min: 75, max: 101 },
+    { label: 'Good match', min: 60, max: 75 },
+    { label: 'Partial match', min: 45, max: 60 },
+    { label: 'Weak match', min: 0, max: 45 },
+  ].map((b) => ({ ...b, count: ranked.filter((r) => r.score >= b.min && r.score < b.max).length, tone: verdict(b.min).tone }));
 
   // Funding analysis
   const lowFundingProposals = proposals.filter((p) => (p.funding_requested ?? 0) > 0 && (p.funding_requested ?? 0) < FUNDING_TIERS.LOW);
@@ -46,14 +53,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
   // Oman Vision pillar alignment — map keywords to pillars
   const pillarAlignment: Record<string, number> = {};
   OMAN_VISION_PILLARS.forEach((p) => { pillarAlignment[p] = 0; });
-  const pillarKeywords: Record<string, string[]> = {
-    'Economic Diversification': ['tourism', 'economic diversification', 'manufacturing', 'logistics', 'blockchain', 'digital transformation'],
-    'Sustainability & Environment': ['solar energy', 'renewable energy', 'coral reef', 'marine conservation', 'climate change', 'water security', 'green hydrogen', 'sustainability'],
-    'Human Capital & Education': ['education', 'youth', 'rural health', 'diagnostics'],
-    'Innovation & Technology': ['artificial intelligence', 'IoT', 'blockchain', 'sensors', '3D scanning', 'machine learning', 'digital preservation'],
-    'Health & Wellbeing': ['healthcare', 'mental health', 'telemedicine', 'diabetes', 'digital health', 'counseling', 'rural health'],
-    'Heritage & Culture': ['cultural heritage', 'digital preservation', 'manuscripts', 'archaeology', 'heritage'],
-  };
+  const pillarKeywords = PILLAR_KEYWORDS;
   proposals.forEach((p) => {
     const kws = (p.keywords ?? []).map((k) => k.toLowerCase());
     OMAN_VISION_PILLARS.forEach((pillar) => {
@@ -65,9 +65,9 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
 
   const stats = [
     { label: t('Total Proposals'), value: proposals.length, icon: FileText, color: 'text-brand-600', bg: 'from-brand-500/10 to-brand-500/5' },
-    { label: t('Publications'), value: publications.length, icon: BookOpen, color: 'text-slate-600', bg: 'from-slate-500/10 to-slate-500/5' },
-    { label: t('Matches Found'), value: matches.length, icon: GitCompare, color: 'text-slate-600', bg: 'from-slate-500/10 to-slate-500/5' },
-    { label: t('Avg Match Score'), value: `${Math.round(avgMatchScore)}%`, icon: TrendingUp, color: 'text-amber-600', bg: 'from-amber-500/10 to-amber-500/5' },
+    { label: t('Assessed'), value: ranked.length, icon: ClipboardCheck, color: 'text-slate-600', bg: 'from-slate-500/10 to-slate-500/5' },
+    { label: t('Average Score'), value: `${Math.round(avgScore)}%`, icon: TrendingUp, color: 'text-amber-600', bg: 'from-amber-500/10 to-amber-500/5' },
+    { label: t('Recommended'), value: recommended, icon: ThumbsUp, color: 'text-emerald-600', bg: 'from-emerald-500/10 to-emerald-500/5' },
   ];
 
   const statusBreakdown = [
@@ -78,7 +78,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
   ];
 
   const recentProposals = proposals.slice(0, 5);
-  const topMatches = matches.slice(0, 5);
+  const topRanked = ranked.slice(0, 5);
 
   return (
     <div className="space-y-6 fade-in">
@@ -193,7 +193,7 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         </div>
       </div>
 
-      {/* Status + Area + Match overview */}
+      {/* Status + Area + Assessment overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Proposal status breakdown */}
         <div className="glass-card rounded-2xl p-6">
@@ -254,28 +254,26 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
           )}
         </div>
 
-        {/* Match score overview */}
+        {/* Assessment overview */}
         <div className="glass-card rounded-2xl p-6 flex flex-col items-center justify-center">
           <h3 className="text-sm font-semibold text-ink-100 mb-4 self-start flex items-center gap-2">
-            <GitCompare size={16} className="text-slate-600" />
-            {t('Match Overview')}
+            <ClipboardCheck size={16} className="text-slate-600" />
+            {t('Assessment Overview')}
           </h3>
-          <ScoreRing score={avgMatchScore} size={120} />
-          <p className="text-xs text-ink-300 mt-3 text-center">{t('Average match score across all proposals')}</p>
-          <div className="grid grid-cols-2 gap-3 w-full mt-4">
-            <div className="glass rounded-lg p-3 text-center">
-              <p className="text-lg font-bold text-emerald-600">{highConfidenceMatches}</p>
-              <p className="text-[10px] text-ink-300">{t('High (80%+)')}</p>
-            </div>
-            <div className="glass rounded-lg p-3 text-center">
-              <p className="text-lg font-bold text-amber-600">{matches.filter((m) => m.match_score >= 40 && m.match_score < 80).length}</p>
-              <p className="text-[10px] text-ink-300">{t('Medium')}</p>
-            </div>
+          <ScoreRing score={avgScore} size={120} />
+          <p className="text-xs text-ink-300 mt-3 text-center">{t('Average criteria score across assessed proposals')}</p>
+          <div className="grid grid-cols-2 gap-2 w-full mt-4">
+            {bands.map((b) => (
+              <div key={b.label} className={`rounded-lg p-2.5 text-center ring-1 ${TONE_CLASSES[b.tone]}`}>
+                <p className="text-lg font-bold">{b.count}</p>
+                <p className="text-[10px]">{t(b.label)}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Recent proposals + Top matches */}
+      {/* Recent proposals + Top ranked */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-card rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-ink-100 mb-4">{t('Recent Proposals')}</h3>
@@ -300,25 +298,28 @@ export function Dashboard({ proposals, publications, matches }: DashboardProps) 
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h3 className="text-sm font-semibold text-ink-100 mb-4">{t('Top Matches')}</h3>
-          {topMatches.length === 0 ? (
-            <p className="text-sm text-ink-400">{t('No matches yet — upload a proposal to auto-match')}</p>
+          <h3 className="text-sm font-semibold text-ink-100 mb-4 flex items-center gap-2">
+            <Trophy size={16} className="text-amber-500" />
+            {t('Top Ranked Proposals')}
+          </h3>
+          {topRanked.length === 0 ? (
+            <p className="text-sm text-ink-400">{t('No assessed proposals yet — upload proposals to assess and rank them')}</p>
           ) : (
             <div className="space-y-3">
-              {topMatches.map((m) => (
-                <div key={m.id} className="flex items-center gap-3">
-                  <ScoreRing score={m.match_score} size={44} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ink-100 truncate" dir="auto">{m.proposal?.title ?? '—'}</p>
-                    <p className="text-xs text-ink-300 truncate" dir="auto">{isRTL ? '↲' : '↳'} {m.publication?.title ?? '—'}</p>
+              {topRanked.map((r) => {
+                const v = verdict(r.score);
+                return (
+                  <div key={r.proposal.id} className="flex items-center gap-3">
+                    <span className="w-6 text-center text-sm font-bold text-ink-300">{r.rank}</span>
+                    <ScoreRing score={r.score} size={44} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-ink-100 truncate" dir="auto">{r.proposal.title}</p>
+                      <p className="text-xs text-ink-300 truncate" dir="auto">{r.proposal.author}</p>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 flex-shrink-0 ${TONE_CLASSES[v.tone]}`}>{t(v.label)}</span>
                   </div>
-                  <div className="flex flex-wrap gap-1 max-w-[120px] justify-end">
-                    {m.matched_keywords.slice(0, 2).map((k) => (
-                      <span key={k} className="chip text-[10px]">{k}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

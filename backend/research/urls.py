@@ -5,8 +5,6 @@ from . import views
 
 router = DefaultRouter()
 router.register('proposals', views.ProposalViewSet, basename='proposal')
-router.register('publications', views.PublicationViewSet, basename='publication')
-router.register('matches', views.MatchViewSet, basename='match')
 router.register('evaluations', views.EvaluationViewSet, basename='evaluation')
 
 urlpatterns = [

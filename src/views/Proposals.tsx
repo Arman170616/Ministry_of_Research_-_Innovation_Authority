@@ -1,33 +1,34 @@
 import { useMemo, useState } from 'react';
-import { FileText, Upload, Filter, X, Search, Calendar, DollarSign, User, Building2, Tag, type LucideIcon, Sparkles, Trash2 } from 'lucide-react';
-import type { Proposal, ProposalStatus, MatchWithRelations } from '@/lib/types';
-import { useProposals, useMatches, updateProposalStatus, deleteProposal } from '@/lib/hooks';
+import { FileText, Upload, Filter, X, Search, Calendar, DollarSign, User, Building2, Tag, type LucideIcon, Trash2, BarChart3 } from 'lucide-react';
+import type { Proposal } from '@/lib/types';
+import { useProposals, useEvaluations, updateProposalStatus, deleteProposal } from '@/lib/hooks';
+import { rankProposals, verdict, TONE_CLASSES, type RankedProposal } from '@/lib/criteria';
 import { Modal, Toast } from '@/components/ui';
 import { formatDate, formatCurrency, statusLabel, PROPOSAL_STATUSES, RESEARCH_AREAS } from '@/lib/utils';
-import { ProposalWizard } from '@/components/ProposalWizard';
+import { MatchingReport } from '@/components/MatchingReport';
 import { useI18n } from '@/lib/i18n';
 
-export function Proposals() {
+export function Proposals({ onUpload }: { onUpload: () => void }) {
   const { t } = useI18n();
   const { proposals, loading, refresh } = useProposals();
-  const { matches, refresh: refreshMatches } = useMatches();
+  const { evaluations } = useEvaluations();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'funding' | 'title' | 'matches'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'funding' | 'title' | 'score'>('date');
   const [showFilters, setShowFilters] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
   const [selected, setSelected] = useState<Proposal | null>(null);
+  const [report, setReport] = useState<RankedProposal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const matchCountByProposal = useMemo(() => {
-    const counts: Record<string, number> = {};
-    matches.forEach((m) => { counts[m.proposal_id] = (counts[m.proposal_id] ?? 0) + 1; });
-    return counts;
-  }, [matches]);
+  // Assessment results per proposal (score, rank and the evaluation for the report).
+  const { assessed, totalRanked } = useMemo(() => {
+    const { ranked } = rankProposals(proposals, evaluations);
+    return { assessed: new Map(ranked.map((r) => [r.proposal.id, r])), totalRanked: ranked.length };
+  }, [proposals, evaluations]);
 
   const filtered = useMemo(() => {
     let result = proposals.filter((p) => {
@@ -44,9 +45,9 @@ export function Proposals() {
     if (sortBy === 'date') result = [...result].sort((a, b) => (b.publication_date ?? '').localeCompare(a.publication_date ?? ''));
     if (sortBy === 'funding') result = [...result].sort((a, b) => (b.funding_requested ?? 0) - (a.funding_requested ?? 0));
     if (sortBy === 'title') result = [...result].sort((a, b) => a.title.localeCompare(b.title));
-    if (sortBy === 'matches') result = [...result].sort((a, b) => (matchCountByProposal[b.id] ?? 0) - (matchCountByProposal[a.id] ?? 0));
+    if (sortBy === 'score') result = [...result].sort((a, b) => (assessed.get(b.id)?.score ?? -1) - (assessed.get(a.id)?.score ?? -1));
     return result;
-  }, [proposals, search, statusFilter, areaFilter, dateFrom, dateTo, sortBy, matchCountByProposal]);
+  }, [proposals, search, statusFilter, areaFilter, dateFrom, dateTo, sortBy, assessed]);
 
   const activeFilters = (statusFilter !== 'all' ? 1 : 0) + (areaFilter !== 'all' ? 1 : 0) + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
 
@@ -69,18 +70,10 @@ export function Proposals() {
       setConfirmDelete(null);
       setSelected(null);
       await refresh();
-      await refreshMatches();
       setToast({ message: t('Proposal deleted'), type: 'success' });
     } else {
       setToast({ message: t('Failed to delete proposal'), type: 'error' });
     }
-  };
-
-  const handleWizardComplete = async () => {
-    await refresh();
-    await refreshMatches();
-    setShowWizard(false);
-    setToast({ message: t('Proposal uploaded, matched, and evaluated successfully'), type: 'success' });
   };
 
   return (
@@ -111,17 +104,17 @@ export function Proposals() {
         </button>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as 'date' | 'funding' | 'title' | 'matches')}
+          onChange={(e) => setSortBy(e.target.value as 'date' | 'funding' | 'title' | 'score')}
           className="glass-input glass-select rounded-xl px-3 py-2 text-sm"
         >
           <option value="date">{t('Sort: Date')}</option>
           <option value="funding">{t('Sort: Funding')}</option>
           <option value="title">{t('Sort: Title')}</option>
-          <option value="matches">{t('Sort: Matches')}</option>
+          <option value="score">{t('Sort: Score')}</option>
         </select>
-        <button onClick={() => setShowWizard(true)} className="btn-solid rounded-xl px-4 py-2 text-sm font-semibold flex items-center gap-2">
+        <button onClick={onUpload} className="btn-solid rounded-xl px-4 py-2 text-sm font-semibold flex items-center gap-2">
           <Upload size={16} />
-          {t('Upload Proposal')}
+          {t('Upload Proposals')}
         </button>
       </div>
 
@@ -148,11 +141,11 @@ export function Proposals() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Published From')}</label>
+              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Submitted From')}</label>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
             </div>
             <div>
-              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Published To')}</label>
+              <label className="text-xs text-ink-300 mb-1.5 block flex items-center gap-1"><Calendar size={12} /> {t('Submitted To')}</label>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm w-full" />
             </div>
           </div>
@@ -182,7 +175,7 @@ export function Proposals() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((p) => {
-            const matchCount = matchCountByProposal[p.id] ?? 0;
+            const result = assessed.get(p.id);
             return (
               <div key={p.id} className="glass-card rounded-2xl p-5 text-start group relative">
                 <div className="flex items-start justify-between mb-3">
@@ -190,10 +183,12 @@ export function Proposals() {
                     <FileText size={16} className="text-brand" />
                   </div>
                   <div className="flex items-center gap-2">
-                    {matchCount > 0 && (
-                      <span className="chip text-[10px]" style={{ background: '#fdf2f3', borderColor: '#f6c9cf', color: '#a50d26' }}>
-                        <Sparkles size={10} className="me-0.5" /> {t(matchCount === 1 ? '{count} match' : '{count} matches', { count: matchCount })}
+                    {result ? (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${TONE_CLASSES[verdict(result.score).tone]}`}>
+                        {t('Score {score}%', { score: result.score })}
                       </span>
+                    ) : (
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-slate-200 text-ink-400">{t('Not assessed')}</span>
                     )}
                     <span className={`badge badge-${p.status}`}>{statusLabel(p.status)}</span>
                   </div>
@@ -222,6 +217,14 @@ export function Proposals() {
                   >
                     {t('View details')}
                   </button>
+                  {result && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setReport(result); }}
+                      className="text-xs text-brand hover:text-brand-700 transition-colors flex items-center gap-1"
+                    >
+                      <BarChart3 size={12} /> {t('Report')}
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(p.id); }}
                     className="glass rounded-lg p-1.5 hover:bg-rose-500/20 transition-colors group/del"
@@ -247,7 +250,7 @@ export function Proposals() {
             <div className="grid grid-cols-2 gap-3">
               <InfoRow icon={User} label={t('Author')} value={selected.author} />
               <InfoRow icon={Building2} label={t('Institution')} value={selected.institution ?? '—'} />
-              <InfoRow icon={Calendar} label={t('Published')} value={formatDate(selected.publication_date)} />
+              <InfoRow icon={Calendar} label={t('Submitted')} value={formatDate(selected.publication_date)} />
               <InfoRow icon={DollarSign} label={t('Funding')} value={formatCurrency(selected.funding_requested)} />
             </div>
             {selected.abstract && (
@@ -278,6 +281,14 @@ export function Proposals() {
                 ))}
               </div>
             </div>
+            {assessed.get(selected.id) && (
+              <button
+                onClick={() => { setReport(assessed.get(selected.id) ?? null); setSelected(null); }}
+                className="btn-liquid rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2"
+              >
+                <BarChart3 size={14} /> {t('View matching report')}
+              </button>
+            )}
             <div className="pt-2 border-t border-ink-700/20">
               <button
                 onClick={() => setConfirmDelete(selected.id)}
@@ -301,7 +312,7 @@ export function Proposals() {
               </div>
               <h3 className="text-base font-semibold text-ink-50">{t('Delete proposal?')}</h3>
             </div>
-            <p className="text-sm text-ink-300 mb-5">{t('This will permanently remove the proposal and all its matches. This cannot be undone.')}</p>
+            <p className="text-sm text-ink-300 mb-5">{t('This will permanently remove the proposal and its evaluation. This cannot be undone.')}</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(null)} className="flex-1 btn-liquid rounded-xl py-2 text-sm">{t('Cancel')}</button>
               <button
@@ -315,8 +326,9 @@ export function Proposals() {
         </div>
       )}
 
-      {/* Upload wizard */}
-      <ProposalWizard open={showWizard} onClose={() => setShowWizard(false)} onComplete={handleWizardComplete} />
+      <Modal open={!!report} onClose={() => setReport(null)} title={t('Matching Report')} wide>
+        {report && <MatchingReport proposal={report.proposal} evaluation={report.evaluation} rank={report.rank} totalRanked={totalRanked} />}
+      </Modal>
 
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>

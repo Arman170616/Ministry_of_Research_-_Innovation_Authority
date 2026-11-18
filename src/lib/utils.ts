@@ -1,4 +1,4 @@
-import type { ProposalStatus, MatchStatus } from '@/lib/types';
+import type { ProposalStatus } from '@/lib/types';
 import { getLang, locale, translate } from '@/lib/i18n';
 
 export function formatDate(date: string | null): string {
@@ -26,8 +26,6 @@ const STATUS_LABELS: Record<string, string> = {
   under_review: 'Under Review',
   approved: 'Approved',
   rejected: 'Rejected',
-  reviewed: 'Reviewed',
-  accepted: 'Accepted',
 };
 
 export function statusLabel(status: string): string {
@@ -35,7 +33,6 @@ export function statusLabel(status: string): string {
 }
 
 export const PROPOSAL_STATUSES: ProposalStatus[] = ['pending', 'under_review', 'approved', 'rejected'];
-export const MATCH_STATUSES: MatchStatus[] = ['pending', 'reviewed', 'accepted', 'rejected'];
 
 export const RESEARCH_AREAS = [
   'Renewable Energy',

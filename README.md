@@ -2,11 +2,13 @@
 
 **Research Proposal Matching Platform** for the Research and Innovation Authority, Sultanate of Oman.
 
-A single workspace for reviewing national research funding proposals, from submission through matching to final evaluation:
+A single workspace for assessing national research funding proposals against the authority's official evaluation criteria and ranking them:
 
-1. **Intake**: submit and filter funding proposals in one place.
-2. **Match**: compare proposals against the national research publication record.
-3. **Evaluate**: score proposals across three evaluation themes aligned with Oman Vision 2040.
+1. **Upload**: upload one proposal or several at once (PDF or TXT).
+2. **Assessment**: AI reads each proposal and scores every criterion in Appendix A, B and C, with a reason for each score.
+3. **Review**: a reviewer checks the details and scores, changes any they disagree with, and records the funding recommendation.
+4. **Matching report**: shows how well the proposal meets the criteria: the overall score, a score for each appendix, strengths and weaknesses. It can be printed.
+5. **Ranking**: all assessed proposals are ranked best first by their overall score.
 
 ## Login page
 
@@ -63,33 +65,46 @@ The whole interface is available in **English** and **Arabic (العربية)**.
 - Arabic switches the layout to **right-to-left** (sidebar on the right, mirrored arrows and sliders) and uses the Cairo typeface.
 - Dates, amounts and statuses are shown in the selected language, e.g. "72,000 ر.ع.".
 - Proposal content (titles, abstracts, keywords) is shown as written, in its own text direction.
-- With AI on, match reasons and evaluation comments are written in the selected language.
+- With AI on, the reasons, summary, strengths and weaknesses are written in the language selected when the proposal is assessed.
 
 **Adding or changing text:** components wrap English text in `t('...')` from [`src/lib/i18n.tsx`](src/lib/i18n.tsx). The Arabic text lives in [`src/lib/i18n-ar.ts`](src/lib/i18n-ar.ts), keyed by the English text. Missing translations fall back to English and are listed in the browser console during development.
 
+## Assessment and ranking
+
+**Uploading.** Choose up to 10 PDF or TXT files at once (15 MB each). They are processed one after another, and each shows its progress: Waiting → Reading → Assessing → Ready. Open a ready proposal to review it; the others keep processing in the background.
+
+**Score.** Every criterion is scored 1–10. The overall score is the total points as a percentage of the maximum, with every criterion counting equally (Appendix A has 8 criteria, B has 11 and C has 6). The team judgment (team size, scientific capacity, leadership) is recorded in the report but does not change the score.
+
+| Overall score | Shown as |
+|---|---|
+| 75% and above | Strong match |
+| 60–74% | Good match |
+| 45–59% | Partial match |
+| below 45% | Weak match |
+
+**Ranking.** The Ranking page lists assessed proposals by overall score, best first; proposals with the same score share a rank. If several reviewers have evaluated a proposal, their scores are averaged. Filter by research area, status or recommendation, and open any proposal's matching report. Proposals without an evaluation are listed separately.
+
 ## AI analysis
 
-When `ANTHROPIC_API_KEY` is set in `backend/.env`, Claude helps reviewers at three points. Everything it produces is a suggestion that a person checks and can change.
+When `ANTHROPIC_API_KEY` is set in `backend/.env`, Claude helps reviewers at two points. Everything it produces is a suggestion that a person checks and can change.
 
 | Step | What Claude does | Typical time |
 |---|---|---|
 | **Read the document** | Reads the uploaded PDF or TXT and fills in title, team, institution, research area, budget, date, abstract and keywords. Lists any fields the document doesn't state. | 5–10 s |
-| **Match publications** | Compares the proposal with every publication by meaning, not exact words, and gives each a 0–100 relevance score with a one-sentence reason. | ~10 s |
-| **Suggest scores** | Reads the full proposal and suggests a score and reason for every evaluation criterion (Appendix A, B, C), plus strengths, weaknesses and a funding recommendation. | 25–60 s |
+| **Assess against the criteria** | Reads the full proposal and scores every criterion (Appendix A, B, C) with a one-sentence reason, and gives a summary, strengths, weaknesses, a team judgment and a funding recommendation. | 25–60 s |
 
-- **Without a key** the app still works: reviewers fill in the form by hand and matching falls back to keyword overlap (20 points per shared keyword).
+- **Without a key** the app still works: reviewers fill in the details and score each criterion by hand.
+- What Claude said is saved with the evaluation, so the matching report can show the reason for each score later.
 - **Status** (approved, rejected, and so on) is always set by a person.
-- **Cost and limits:** each upload makes about 3 requests to the Anthropic API, which is billed per use. Each user can make 60 AI requests per hour (`AI_RATE_LIMIT`).
+- **Cost and limits:** each uploaded proposal makes 2 requests to the Anthropic API, which is billed per use. Each user can make 60 AI requests per hour (`AI_RATE_LIMIT`), so about 30 proposals.
 - **Privacy:** proposal documents are sent to Anthropic's API for analysis. Confirm this is allowed for your documents before turning AI on.
 - The code is in [`backend/research/ai.py`](backend/research/ai.py).
 
 ## Access rules
 
 - Every API endpoint except login and sign-up requires a signed-in user.
-- **Proposals** are private to the person who submitted them. **Staff** users (`is_staff`) see all proposals.
-- **Matches** follow their proposal: you see matches for the proposals you can see. Only the review fields (`status`, `reviewed_by`, `notes`) can be edited.
-- **Publications** are a shared library for all signed-in users.
-- **Evaluations**: each reviewer has one evaluation per proposal. Saving again updates it.
+- **Proposals** are private to the person who submitted them. **Staff** users (`is_staff`) see all proposals, so they can rank everything.
+- **Evaluations** follow their proposal: you see the evaluations of the proposals you can see. Each reviewer has one evaluation per proposal; saving again updates it.
 
 ## API
 
@@ -102,18 +117,11 @@ All endpoints are under `/api/`. Send the token from login or sign-up as `Author
 | POST | `/auth/logout/` | Revoke the token |
 | GET | `/auth/me/` | The signed-in user |
 | GET, POST | `/proposals/` | List or create proposals |
-| GET, PATCH, DELETE | `/proposals/<id>/` | Read, update or delete a proposal (deleting also removes its matches and evaluations) |
-| GET, POST | `/publications/` | List or create publications |
-| GET, PATCH, DELETE | `/publications/<id>/` | Read, update or delete a publication |
-| GET | `/matches/?proposal_id=<id>` | List matches with nested proposal and publication, best score first |
-| PATCH | `/matches/<id>/` | Review a match (`status`, `reviewed_by`, `notes`) |
-| POST | `/matches/generate/` | Run matching for all proposals and return `{count, method, warning}`, or for one with `{proposal_id}` and return its matches |
-| GET, POST | `/evaluations/` | List your evaluations, or save one (created or updated per proposal) |
+| GET, PATCH, DELETE | `/proposals/<id>/` | Read, update or delete a proposal (deleting also removes its evaluations) |
+| GET, POST | `/evaluations/` | List evaluations (optionally `?proposal_id=<id>`), or save one (created or updated per proposal). Each has a read-only `score` (overall %) and the `ai_assessment` |
 | GET | `/ai/status/` | Whether AI analysis is turned on, and which model |
 | POST | `/ai/extract/` | Upload a proposal (`multipart`, field `file`, PDF or TXT) and get the extracted fields back |
-| POST | `/ai/evaluate/` | Get suggested evaluation scores for `{proposal_id}` |
-
-**Matching:** with AI on, Claude scores relevance by meaning and gives a reason; matches under 20% are left out. With AI off, a proposal and a publication match when they share keywords (20 points per shared keyword, up to 100). Running matching again refreshes scores but keeps review status and notes.
+| POST | `/ai/evaluate/` | Assess a proposal against the criteria. Send its details and `document_text` (it does not need to be saved yet) and an optional `language` (`en` or `ar`) |
 
 ## Scripts
 
@@ -130,11 +138,11 @@ All endpoints are under `/api/`. Send the token from login or sign-up as `Author
 ```
 backend/
   config/       Django settings and root URLs
-  research/     Models, API views, serializers, matching engine, tests
+  research/     Models, API views, serializers, AI analysis, tests
 src/
-  views/        Pages: Login, Dashboard, Proposals, Publications, Matching
-  components/   Header, Sidebar, ProposalWizard, shared UI
-  lib/          API client (api.ts), data hooks, types, helpers
+  views/        Pages: Login, Dashboard, Proposals, Ranking
+  components/   Header, Sidebar, ProposalWizard (upload → report), MatchingReport, shared UI
+  lib/          API client (api.ts), data hooks, criteria and scoring, types, translations
 public/images/  Logos and images
 docs/           Screenshots
 ```

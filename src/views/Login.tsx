@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
   User, Lock, Mail, Loader2, AlertCircle, Eye, EyeOff, ArrowRight,
-  FileInput, GitCompareArrows, ClipboardCheck,
+  FileInput, ClipboardCheck, Trophy,
 } from 'lucide-react';
 import { auth } from '@/lib/api';
 import type { AuthUser } from '@/lib/types';
 import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
 const STEPS = [
-  { icon: FileInput, title: 'Intake', text: 'Submit and filter funding proposals in one place.' },
-  { icon: GitCompareArrows, title: 'Match', text: 'Compare proposals against the national publication record.' },
-  { icon: ClipboardCheck, title: 'Evaluate', text: 'Score across three themes aligned with Oman Vision 2040.' },
+  { icon: FileInput, title: 'Upload', text: 'Upload one proposal or many at once.' },
+  { icon: ClipboardCheck, title: 'Assess', text: 'Score each proposal against the official criteria, then review.' },
+  { icon: Trophy, title: 'Rank', text: 'Rank proposals by how well they meet the criteria.' },
 ];
 
 /** Subtle geometric pattern inspired by traditional Omani lattice work. */
@@ -94,7 +94,7 @@ export function Login({ onAuthed }: { onAuthed: (user: AuthUser) => void }) {
             {t('Research Proposal Matching Platform')}
           </h1>
           <p className="mt-4 text-base leading-relaxed text-slate-600">
-            {t('A single workspace for reviewing national research funding proposals — from submission through matching to final evaluation.')}
+            {t('A single workspace for assessing national research funding proposals against the official criteria — from upload to the matching report and ranking.')}
           </p>
 
           <ol className="mt-10 space-y-5">
